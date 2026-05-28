@@ -1,0 +1,18 @@
+{
+  "input_csv": "outputs/stage4_structured_retrieval_full_evidence_structured_prompt_llm.csv",
+  "rows": 1987,
+  "sentence_bert_available": false,
+  "metrics": {
+    "token_f1": 0.46687290813565213,
+    "clip_text_similarity": 0.6608308886740756,
+    "sentence_bert_similarity": null,
+    "bleu1_sentence_avg": 0.43264619758317113,
+    "bleu2_sentence_avg": 0.3569733689386869,
+    "bleu3_sentence_avg": 0.2996370574409894,
+    "bleu4_sentence_avg": 0.24879097650702472,
+    "bleu4_corpus": 0.23476062785434978,
+    "rouge_l": 0.44852778564535667,
+    "meteor": 0.444007520021514,
+    "cider": 0.8765960289352055
+  }
+}

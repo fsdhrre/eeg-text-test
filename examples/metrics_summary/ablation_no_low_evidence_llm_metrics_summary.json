@@ -1,0 +1,18 @@
+{
+  "input_csv": "outputs/ablation_no_low_evidence_llm.csv",
+  "rows": 1987,
+  "sentence_bert_available": false,
+  "metrics": {
+    "token_f1": 0.47045013136127983,
+    "clip_text_similarity": 0.653555122500817,
+    "sentence_bert_similarity": null,
+    "bleu1_sentence_avg": 0.4514472783132861,
+    "bleu2_sentence_avg": 0.36950612523301174,
+    "bleu3_sentence_avg": 0.30774274376774896,
+    "bleu4_sentence_avg": 0.25445878788931087,
+    "bleu4_corpus": 0.2384044324688011,
+    "rouge_l": 0.4502126358842734,
+    "meteor": 0.45551238481473094,
+    "cider": 0.877329027350805
+  }
+}

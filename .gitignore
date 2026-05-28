@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Local data, checkpoints, and generated outputs.
+data/
+external/
+outputs/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.csv
+
+# Environment files.
+.env
+.venv/
+venv/
+conda-meta/
+
+# IDE and OS files.
+.idea/
+.vscode/
+.DS_Store
