@@ -1,3 +1,14 @@
+"""Optional Stage 5: train a candidate-label reranker.
+
+This script is an ablation/extension, not the default final route. It freezes
+the trained EEG encoder and semantic heads, builds a candidate label set from
+classifier top-k plus retrieval top-k labels, and trains a small MLP reranker to
+choose the true label from candidate evidence features.
+
+In the current experiments the rule-based evidence decision is stronger, but
+this file is kept so the learned-reranker alternative is reproducible.
+"""
+
 import argparse
 import json
 import os
@@ -28,6 +39,8 @@ from scripts.stage4_retrieval_infer import (
 
 
 def parse_args():
+    """Define reranker, frozen-checkpoint, and candidate-generation settings."""
+
     parser = argparse.ArgumentParser(description="Stage 5: train a candidate label reranker on retrieval evidence.")
     parser.add_argument("--checkpoint_dir", default=os.path.join(PathConfig.staged_output_dir, "stage2_eegpt_structured", "best"))
     parser.add_argument("--semantic_db_path", default=os.path.join(PathConfig.staged_output_dir, "structured_semantic_targets_all_smoke.pt"))
@@ -57,6 +70,8 @@ def parse_args():
 
 
 def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
+    """Create an EEG-only loader for reranker training/evaluation."""
+
     dataset = EEGImageDataset(
         eeg_dataset=paths.eeg_dataset,
         splits_path=paths.splits_path,
@@ -77,12 +92,22 @@ def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
 
 
 def classifier_top_labels(cls_logits, id2label, top_k):
+    """Convert classifier logits into a set of top-k label names."""
+
     _, indices = torch.topk(cls_logits.float(), k=min(top_k, cls_logits.numel()), dim=-1)
     return {id2label[str(int(index.item()))] for index in indices}
 
 
 @torch.no_grad()
 def build_candidate_example(eeg_encoder, multi_head, batch, db, id2label, args, device, add_gold=False):
+    """Build reranker training examples for one EEG batch.
+
+    Each example is a variable-size candidate list. For every candidate label,
+    ``candidate_feature_tensor`` creates a feature vector summarizing classifier
+    confidence and low/mid/high retrieval evidence. The target is the index of
+    the true label in that candidate list.
+    """
+
     eeg = batch["eeg"].unsqueeze(1).to(device)
     labels = batch["labels"].to(device)
     eeg_feat, cls_logits = eeg_encoder(eeg)
@@ -100,6 +125,9 @@ def build_candidate_example(eeg_encoder, multi_head, batch, db, id2label, args, 
         candidate_labels.update(classifier_top_labels(cls_logits[i], id2label, args.classifier_top_k))
         candidate_labels.update(top_retrieval_labels(predictions_by_level, db, args.top_k))
         if add_gold:
+            # During training, adding the gold label prevents the model from
+            # losing samples where retrieval/classifier both miss the target.
+            # Evaluation disables this so candidate_hit remains honest.
             candidate_labels.add(true_label)
 
         candidate_names, features = candidate_feature_tensor(
@@ -118,6 +146,8 @@ def build_candidate_example(eeg_encoder, multi_head, batch, db, id2label, args, 
 
 
 def train_epoch(reranker, optimizer, eeg_encoder, multi_head, loader, db, id2label, args, device):
+    """Train the reranker for one epoch over variable-size candidate sets."""
+
     reranker.train()
     total_loss = 0.0
     total = 0
@@ -156,6 +186,8 @@ def train_epoch(reranker, optimizer, eeg_encoder, multi_head, loader, db, id2lab
 
 @torch.no_grad()
 def evaluate(reranker, eeg_encoder, multi_head, loader, db, id2label, args, device):
+    """Evaluate reranker accuracy and candidate recall."""
+
     reranker.eval()
     total_loss = 0.0
     total = 0
@@ -194,6 +226,8 @@ def evaluate(reranker, eeg_encoder, multi_head, loader, db, id2label, args, devi
 
 
 def save_checkpoint(path, reranker, metadata):
+    """Save reranker weights together with feature metadata."""
+
     os.makedirs(path, exist_ok=True)
     torch.save(
         {
@@ -218,6 +252,8 @@ def main():
 
     paths = configure_paths(args)
     data_cfg = DataConfig()
+    # Load the same semantic DB used by Stage 4 so reranker features match
+    # inference-time evidence.
     db = load_semantic_db(args.semantic_db_path, device)
     ensure_label_indices(db, device)
 
@@ -225,6 +261,8 @@ def main():
     val_loader = make_loader(paths, data_cfg, "val", args.batch_size, False, args.num_workers)
     test_loader = make_loader(paths, data_cfg, "test", args.batch_size, False, args.num_workers)
 
+    # Stage 5 does not update the EEG model or semantic heads. It only learns
+    # how to score labels from their existing evidence features.
     eeg_encoder = load_eeg_encoder(paths, device).eval()
     multi_head = MultiHead(args.eeg_feature_dim, 512).to(device).eval()
     multi_head.load_state_dict(torch.load(os.path.join(args.checkpoint_dir, "multi_head.pt"), map_location=device))
@@ -233,6 +271,8 @@ def main():
     for parameter in multi_head.parameters():
         parameter.requires_grad = False
 
+    # CandidateReranker is a small MLP applied independently to each candidate
+    # label; softmax over candidates chooses the final label.
     reranker = CandidateReranker(len(FEATURE_NAMES), args.hidden_dim, args.dropout).to(device)
     optimizer = torch.optim.AdamW(reranker.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     best_val = -1.0

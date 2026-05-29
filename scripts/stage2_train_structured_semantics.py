@@ -1,3 +1,17 @@
+"""Stage 2: train low/mid/high EEG semantic heads.
+
+This stage is the main semantic-alignment training step. It starts from the
+Stage 1 EEG encoder checkpoint, predicts three EEG semantic embeddings, and
+aligns them to CLIP text embeddings from the structured semantic database:
+
+    low  -> visual attributes
+    mid  -> object/action/layout
+    high -> scene/global caption semantics
+
+The EEGPT backbone stays frozen. For EEGPT runs, only the adapter and the
+``MultiHead`` semantic heads are optimized.
+"""
+
 import argparse
 import json
 import os
@@ -23,6 +37,8 @@ EEGPT_KWARGS = '{"img_size":[58,1024],"patch_size":64,"patch_stride":64,"embed_n
 
 
 def parse_args():
+    """Define model paths, training hyperparameters, and loss weights."""
+
     parser = argparse.ArgumentParser(description="Stage 2 structured: align EEG heads to explicit low/mid/high text semantics.")
     parser.add_argument("--target_db_path", default=os.path.join(PathConfig.staged_output_dir, "structured_semantic_targets_all.pt"))
     parser.add_argument("--eeg_encoder_type", choices=["channelnet", "eegpt"], default="eegpt")
@@ -50,6 +66,8 @@ def parse_args():
 
 
 def configure_paths(args):
+    """Convert command-line values back into a PathConfig-like object."""
+
     paths = PathConfig()
     paths.eeg_encoder_type = args.eeg_encoder_type
     paths.eeg_encoder_path = args.eeg_encoder_path
@@ -63,6 +81,8 @@ def configure_paths(args):
 
 
 def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
+    """Create an EEG loader that also returns image names for target lookup."""
+
     dataset = EEGImageDataset(
         eeg_dataset=paths.eeg_dataset,
         splits_path=paths.splits_path,
@@ -83,6 +103,8 @@ def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
 
 
 def load_target_db(path, device):
+    """Load the structured semantic database and normalize embeddings."""
+
     db = torch.load(path, map_location="cpu")
     image_to_index = {name: i for i, name in enumerate(db["image_names"])}
     embeddings = {
@@ -93,6 +115,8 @@ def load_target_db(path, device):
 
 
 def batch_targets(image_names, image_to_index, embeddings):
+    """Gather low/mid/high/full target embeddings for a batch of image names."""
+
     indices = []
     missing = []
     for image_name in image_names:
@@ -107,6 +131,13 @@ def batch_targets(image_names, image_to_index, embeddings):
 
 
 def contrastive_loss(pred, target, temperature):
+    """Symmetric in-batch contrastive loss.
+
+    Rows ask "which target matches this EEG prediction?" and columns ask
+    "which EEG prediction matches this target?". Averaging both directions
+    makes the alignment less sensitive to batch asymmetry.
+    """
+
     pred = F.normalize(pred.float(), dim=-1)
     target = F.normalize(target.float(), dim=-1)
     logits = pred @ target.t() / temperature
@@ -115,6 +146,8 @@ def contrastive_loss(pred, target, temperature):
 
 
 def retrieval_top1(pred, target):
+    """In-batch retrieval diagnostic: does each prediction retrieve itself?"""
+
     pred = F.normalize(pred.float(), dim=-1)
     target = F.normalize(target.float(), dim=-1)
     labels = torch.arange(pred.size(0), device=pred.device)
@@ -122,6 +155,8 @@ def retrieval_top1(pred, target):
 
 
 def trainable_params(eeg_encoder, multi_head, encoder_type):
+    """Return exactly the parameters that should be optimized in Stage 2."""
+
     params = list(multi_head.parameters())
     if encoder_type == "eegpt":
         params += eeg_encoder.trainable_parameters
@@ -129,6 +164,8 @@ def trainable_params(eeg_encoder, multi_head, encoder_type):
 
 
 def forward_batch(eeg_encoder, multi_head, batch, image_to_index, embeddings, device):
+    """Run EEG encoder + semantic heads and fetch matching target embeddings."""
+
     eeg = batch["eeg"].unsqueeze(1).to(device)
     labels = batch["labels"].to(device)
     targets = batch_targets(batch["image_names"], image_to_index, embeddings)
@@ -138,6 +175,8 @@ def forward_batch(eeg_encoder, multi_head, batch, image_to_index, embeddings, de
 
 
 def compute_loss(predictions, targets, cls_logits, labels, args, cls_criterion):
+    """Combine semantic contrastive losses and auxiliary classification loss."""
+
     low_loss = contrastive_loss(predictions[0], targets[0], args.temperature)
     mid_loss = contrastive_loss(predictions[1], targets[1], args.temperature)
     high_loss = contrastive_loss(predictions[2], targets[2], args.temperature)
@@ -155,6 +194,8 @@ def compute_loss(predictions, targets, cls_logits, labels, args, cls_criterion):
 
 @torch.no_grad()
 def evaluate(eeg_encoder, multi_head, loader, image_to_index, embeddings, args, device):
+    """Evaluate alignment loss, classification accuracy, and retrieval top-1."""
+
     eeg_encoder.eval()
     multi_head.eval()
     cls_criterion = nn.CrossEntropyLoss()
@@ -178,6 +219,8 @@ def evaluate(eeg_encoder, multi_head, loader, image_to_index, embeddings, args, 
 
 
 def save_checkpoint(output_dir, eeg_encoder, multi_head, metadata, encoder_type):
+    """Save semantic heads and, for EEGPT, the trainable adapter state."""
+
     os.makedirs(output_dir, exist_ok=True)
     torch.save(multi_head.state_dict(), os.path.join(output_dir, "multi_head.pt"))
     if encoder_type == "eegpt":
@@ -195,12 +238,16 @@ def main():
 
     device = get_device(args.device)
     os.makedirs(args.output_dir, exist_ok=True)
+    # The target database is fixed during training. It provides all semantic
+    # supervision as normalized CLIP text embeddings.
     _, image_to_index, embeddings = load_target_db(args.target_db_path, device)
 
     train_loader = make_loader(paths, data_cfg, "train", args.batch_size, True, args.num_workers)
     val_loader = make_loader(paths, data_cfg, "val", args.batch_size, False, args.num_workers)
     test_loader = make_loader(paths, data_cfg, "test", args.batch_size, False, args.num_workers)
 
+    # Load the Stage 1 EEG encoder. With EEGPT, the backbone remains frozen and
+    # the adapter stays trainable.
     eeg_encoder = load_eeg_encoder(paths, device)
     multi_head = MultiHead(args.eeg_feature_dim, 512).to(device)
     optimizer = torch.optim.AdamW(trainable_params(eeg_encoder, multi_head, args.eeg_encoder_type), lr=args.learning_rate, weight_decay=args.weight_decay)
@@ -211,11 +258,15 @@ def main():
     for epoch in range(args.num_epochs):
         eeg_encoder.train()
         if args.eeg_encoder_type == "eegpt":
+            # Keep the pretrained EEGPT backbone in eval mode so dropout/batch
+            # behavior does not change while adapter parameters train.
             eeg_encoder.backbone.eval()
         multi_head.train()
         running = 0.0
         pbar = tqdm(train_loader, desc=f"Stage 2 structured epoch {epoch + 1}/{args.num_epochs}")
         for local_step, batch in enumerate(pbar, start=1):
+            # One training step aligns all three semantic levels for the same
+            # EEG sample, plus a weak object-class auxiliary objective.
             predictions, targets, cls_logits, labels = forward_batch(eeg_encoder, multi_head, batch, image_to_index, embeddings, device)
             loss, losses = compute_loss(predictions, targets, cls_logits, labels, args, cls_criterion)
 

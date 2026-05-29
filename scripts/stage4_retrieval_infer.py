@@ -1,3 +1,19 @@
+"""Stage 4: retrieve semantic anchors from EEG and optionally generate captions.
+
+This script is the inference core of the final retrieval-based pipeline:
+
+1. Load the Stage 2 EEG encoder + low/mid/high semantic heads.
+2. Predict semantic embeddings for each test EEG sample.
+3. Retrieve top-k low/mid/high anchors from the structured semantic database.
+4. Optionally aggregate evidence to choose a main object label.
+5. Build a prompt containing reliable and uncertain cues.
+6. Let a frozen LLM compose one short caption.
+
+The same script also runs ablations. For example,
+``--semantic_levels mid high`` removes the low branch, and
+``--skip_llm`` evaluates retrieval/evidence without language generation.
+"""
+
 import argparse
 import csv
 import os
@@ -24,6 +40,8 @@ EEGPT_KWARGS = '{"img_size":[58,1024],"patch_size":64,"patch_stride":64,"embed_n
 
 
 def parse_args():
+    """Define checkpoint paths, retrieval settings, prompt style, and ablation flags."""
+
     parser = argparse.ArgumentParser(description="Stage 4 retrieval: retrieve semantic anchors and let LLM compose a caption.")
     parser.add_argument("--checkpoint_dir", default=os.path.join(PathConfig.staged_output_dir, "stage2_eegpt_retrieval", "best"))
     parser.add_argument("--semantic_db_path", default=os.path.join(PathConfig.staged_output_dir, "semantic_db_train.pt"))
@@ -76,6 +94,8 @@ def parse_args():
 
 
 def token_f1(reference: str, generated: str) -> float:
+    """Simple bag-of-words token F1 between reference and generated caption."""
+
     ref_tokens = reference.lower().split()
     gen_tokens = generated.lower().split()
     if not ref_tokens or not gen_tokens:
@@ -97,6 +117,8 @@ def token_f1(reference: str, generated: str) -> float:
 
 
 def clean_generated_caption(text: str) -> str:
+    """Remove common LLM artifacts and keep only the first sentence."""
+
     cleaned = text.strip()
     for marker in ["###", "Tags:", "Answer:", "Q:", "\n"]:
         if marker in cleaned:
@@ -108,6 +130,8 @@ def clean_generated_caption(text: str) -> str:
 
 
 def configure_paths(args):
+    """Create a PathConfig object pointing at the selected Stage 2 checkpoint."""
+
     paths = PathConfig()
     paths.eeg_encoder_type = args.eeg_encoder_type
     paths.eeg_encoder_path = os.path.join(args.checkpoint_dir, "eeg_encoder")
@@ -121,6 +145,8 @@ def configure_paths(args):
 
 
 def load_retrieval_model(args, device):
+    """Load frozen EEG encoder and trained MultiHead semantic heads."""
+
     paths = configure_paths(args)
     eeg_encoder = load_eeg_encoder(paths, device).eval()
     multi_head = MultiHead(args.eeg_feature_dim, 512).to(device).eval()
@@ -129,6 +155,8 @@ def load_retrieval_model(args, device):
 
 
 def load_reranker(path, device):
+    """Load optional Stage 5 reranker used in one ablation path."""
+
     if not path:
         return None
     checkpoint_path = path
@@ -145,6 +173,8 @@ def load_reranker(path, device):
 
 
 def load_semantic_db(path, device):
+    """Load the structured semantic database and build label-index helpers."""
+
     db = torch.load(path, map_location="cpu")
     db["embeddings"] = {
         key: F.normalize(value.float(), dim=-1).to(device)
@@ -162,6 +192,8 @@ def load_semantic_db(path, device):
 
 
 def retrieve_one(query, db_embeds, top_k):
+    """Retrieve top-k database entries by cosine similarity."""
+
     query = F.normalize(query.float(), dim=-1)
     scores = query @ db_embeds.t()
     values, indices = torch.topk(scores, k=min(top_k, db_embeds.size(0)), dim=-1)
@@ -169,6 +201,8 @@ def retrieve_one(query, db_embeds, top_k):
 
 
 def retrieve_one_filtered(query, db_embeds, candidate_mask, top_k):
+    """Retrieve top-k entries after masking to candidate labels."""
+
     query = F.normalize(query.float(), dim=-1)
     scores = query @ db_embeds.t()
     scores = scores.masked_fill(~candidate_mask.unsqueeze(0), -1e9)
@@ -180,6 +214,8 @@ def retrieve_one_filtered(query, db_embeds, candidate_mask, top_k):
 
 
 def format_anchor(db, index, score, level):
+    """Convert a retrieved database row into a prompt-friendly dictionary."""
+
     label_name = db["label_names"][index]
     caption = db["captions"][index]
     semantic_text = caption
@@ -196,11 +232,15 @@ def format_anchor(db, index, score, level):
 
 
 def classifier_top_labels(cls_logits, id2label, top_k):
+    """Return classifier top-k labels as a set."""
+
     values, indices = torch.topk(cls_logits.float(), k=min(top_k, cls_logits.numel()), dim=-1)
     return {id2label[str(int(index.item()))] for index in indices}
 
 
 def classifier_top_label_scores(cls_logits, id2label, top_k):
+    """Return classifier top-k labels with a small rank-based bonus."""
+
     probs = F.softmax(cls_logits.float(), dim=-1)
     values, indices = torch.topk(probs, k=min(top_k, probs.numel()), dim=-1)
     scores = {}
@@ -212,6 +252,8 @@ def classifier_top_label_scores(cls_logits, id2label, top_k):
 
 
 def top_retrieval_labels(predictions_by_level, db, top_k):
+    """Collect labels appearing in top-k retrieval results across levels."""
+
     labels = set()
     for level, pred in predictions_by_level.items():
         scores, indices = retrieve_one(pred, db["embeddings"][level], top_k)
@@ -221,11 +263,15 @@ def top_retrieval_labels(predictions_by_level, db, top_k):
 
 
 def make_candidate_mask(db, candidate_labels, device):
+    """Create a boolean database mask for candidate-label-only retrieval."""
+
     mask = torch.tensor([label in candidate_labels for label in db["label_names"]], dtype=torch.bool, device=device)
     return mask
 
 
 def select_vote_anchors(anchors_by_level, prompt_top_k):
+    """Select anchors by a simple weighted voting scheme across levels."""
+
     level_weights = {"low": 0.7, "mid": 1.2, "high": 1.0}
     label_scores = {}
     label_best = {}
@@ -258,6 +304,8 @@ def select_vote_anchors(anchors_by_level, prompt_top_k):
 
 
 def decide_main_label(anchors_by_level, classifier_pred):
+    """Legacy rule-based label decision used for comparison/debugging."""
+
     top = {level: anchors[0] for level, anchors in anchors_by_level.items() if anchors}
     if not top:
         return classifier_pred, "fallback_classifier"
@@ -291,6 +339,8 @@ def decide_main_label(anchors_by_level, classifier_pred):
 
 
 def score_candidate_labels(predictions_by_level, db, candidate_labels, cls_logits, id2label, classifier_top_k):
+    """Score possible labels by combining classifier and retrieval evidence."""
+
     labels = sorted(label for label in candidate_labels if label in db["label_indices"])
     if not labels:
         return {}
@@ -332,6 +382,15 @@ def decide_main_label_evidence(
     classifier_top_k,
     margin_threshold,
 ):
+    """Evidence-based object decision used by the main pipeline.
+
+    The candidate set is the union of classifier top-k labels and labels
+    retrieved by low/mid/high branches. Each candidate receives evidence from
+    semantic similarity, branch weights, and classifier confidence. If the best
+    two candidates are too close, the legacy rule is kept to avoid overreacting
+    to noisy retrieval.
+    """
+
     classifier_pred = id2label[str(int(cls_logits.argmax().item()))]
     old_label, old_reason = decide_main_label(anchors_by_level, classifier_pred)
     if not candidate_labels:
@@ -361,6 +420,8 @@ def decide_main_label_evidence(
 
 @torch.no_grad()
 def decide_main_label_reranker(reranker, predictions_by_level, db, candidate_labels, cls_logits, id2label, classifier_top_k):
+    """Use the optional learned reranker to choose the main label."""
+
     if reranker is None:
         return None, "", {}
     candidate_names, features = candidate_feature_tensor(
@@ -387,6 +448,8 @@ def decide_main_label_reranker(reranker, predictions_by_level, db, candidate_lab
 
 
 def select_label_anchors(anchors_by_level, main_label, prompt_top_k):
+    """Keep retrieved anchors whose label matches the decided main label."""
+
     selected = {"low": [], "mid": [], "high": []}
     for level, anchors in anchors_by_level.items():
         matched = [anchor for anchor in anchors if anchor["label"] == main_label]
@@ -400,6 +463,8 @@ def select_label_anchors(anchors_by_level, main_label, prompt_top_k):
 
 
 def retrieve_label_anchors(predictions_by_level, db, main_label, prompt_top_k):
+    """Retrieve fresh anchors restricted to the decided main label."""
+
     if main_label not in db["label_indices"]:
         return None
     selected = {"low": [], "mid": [], "high": []}
@@ -420,11 +485,15 @@ def retrieve_label_anchors(predictions_by_level, db, main_label, prompt_top_k):
 
 
 def select_decision_anchors(anchors_by_level, classifier_pred, prompt_top_k):
+    """Select anchors for the older decision-mode prompt."""
+
     main_label, reason = decide_main_label(anchors_by_level, classifier_pred)
     return select_label_anchors(anchors_by_level, main_label, prompt_top_k), main_label, reason
 
 
 def select_prompt_anchors(anchors_by_level, anchor_mode, prompt_top_k):
+    """Choose which anchors are exposed to the LLM prompt."""
+
     if anchor_mode == "top1_per_level":
         return {
             level: anchors[:1]
@@ -447,6 +516,8 @@ def select_prompt_anchors(anchors_by_level, anchor_mode, prompt_top_k):
 
 
 def format_evidence_scores(evidence, limit=5):
+    """Serialize evidence scores into a compact CSV cell."""
+
     if not evidence:
         return ""
     ranked = sorted(evidence.items(), key=lambda item: item[1]["score"], reverse=True)[:limit]
@@ -464,6 +535,13 @@ def build_retrieval_prompt(
     decision_reason="",
     generation_prompt_style="conservative",
 ):
+    """Build the final LLM prompt from reliable and uncertain semantic cues.
+
+    The prompt contains high-confidence retrieved anchors and separates lower
+    confidence cues as uncertain. The ``structured`` prompt style asks the LLM
+    to mimic short image-caption phrasing, which improves lexical metrics.
+    """
+
     if preselected_anchors is not None:
         prompt_anchors = preselected_anchors
     elif anchor_mode == "decision":
@@ -523,6 +601,8 @@ def build_retrieval_prompt(
 
 @torch.no_grad()
 def generate_from_prompt(tokenizer, llm, prompt, device, max_new_tokens):
+    """Run the frozen LLM and clean the generated first sentence."""
+
     if hasattr(tokenizer, "apply_chat_template") and tokenizer.chat_template:
         messages = [
             {"role": "system", "content": "You write concise and conservative image captions."},
@@ -543,6 +623,8 @@ def generate_from_prompt(tokenizer, llm, prompt, device, max_new_tokens):
 
 
 def make_loader(paths, data_cfg, tokenizer, args):
+    """Create the test-set caption loader used for inference/evaluation."""
+
     dataset = EEGCaptionDataset(
         eeg_dataset=paths.eeg_dataset,
         splits_path=paths.splits_path,
@@ -572,11 +654,15 @@ def main():
     ensure_source_on_path(paths.source_root)
     from constants import id2label
 
+    # Load tokenizer/LLM separately: skip_llm mode still needs tokenizer for
+    # dataset construction, but avoids loading the large language model.
     device = get_device(args.device)
     tokenizer = AutoTokenizer.from_pretrained(paths.llm_path, local_files_only=True)
     tokenizer.pad_token_id = tokenizer.eos_token_id
     test_loader = make_loader(paths, data_cfg, tokenizer, args)
 
+    # The semantic DB is both the retrieval index and the source of readable
+    # low/mid/high evidence text inserted into prompts.
     db = load_semantic_db(args.semantic_db_path, device)
     eeg_encoder, multi_head = load_retrieval_model(args, device)
     reranker = load_reranker(args.reranker_path, device)
@@ -599,6 +685,8 @@ def main():
                 "mid": pred_mid[i:i + 1],
                 "high": pred_high[i:i + 1],
             }
+            # Ablation switch: removing a level here means it is not used for
+            # retrieval, evidence decision, or LLM prompt construction.
             predictions_by_level = {
                 level: pred
                 for level, pred in predictions_by_level.items()
@@ -607,6 +695,8 @@ def main():
             candidate_labels = set()
             candidate_mask = None
             if args.label_filter == "candidate":
+                # Optional speed/noise filter: restrict retrieval to labels that
+                # either classifier or semantic retrieval already considers.
                 candidate_labels.update(classifier_top_labels(cls_logits[i], id2label, args.classifier_top_k))
                 candidate_labels.update(top_retrieval_labels(predictions_by_level, db, args.top_k))
                 candidate_mask = make_candidate_mask(db, candidate_labels, device)
@@ -615,6 +705,7 @@ def main():
             top_labels = {"low": "", "mid": "", "high": ""}
             top_scores = {"low": "", "mid": "", "high": ""}
             for level, pred in predictions_by_level.items():
+                # Retrieve top-k anchors independently per semantic level.
                 if candidate_mask is not None:
                     scores, indices = retrieve_one_filtered(pred, db["embeddings"][level], candidate_mask, args.top_k)
                 else:
@@ -630,6 +721,8 @@ def main():
             decision_evidence = {}
             preselected_anchors = None
             if args.anchor_mode == "evidence" and reranker is not None:
+                # Learned reranker ablation. This is optional and not the main
+                # reported route when evidence decision performs better.
                 rerank_label, rerank_reason, decision_evidence = decide_main_label_reranker(
                     reranker,
                     predictions_by_level,
@@ -649,6 +742,8 @@ def main():
                         args.prompt_top_k,
                     )
             elif args.anchor_mode == "evidence":
+                # Main route: aggregate classifier and retrieval evidence to
+                # decide the primary label and then retrieve matching anchors.
                 main_label, decision_reason, decision_evidence = decide_main_label_evidence(
                     predictions_by_level,
                     anchors_by_level,
@@ -682,6 +777,8 @@ def main():
                 main_label, decision_reason = decide_main_label(anchors_by_level, predicted_label)
             elif args.anchor_mode != "evidence":
                 main_label, decision_reason = "", ""
+            # The CSV stores both the generated caption and the full evidence
+            # trace, so errors can be inspected sample by sample.
             rows.append({
                 "image_name": batch["image_names"][i],
                 "reference_caption": batch["captions"][i],

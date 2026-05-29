@@ -1,3 +1,10 @@
+"""Normalize an existing Qwen-VL caption cache.
+
+Use this script after generation if the cache contains extra markdown,
+multi-sentence answers, missing final punctuation, or inconsistent category
+prefixes. It keeps the same image keys and rewrites only the caption text.
+"""
+
 import argparse
 import csv
 import json
@@ -14,6 +21,8 @@ from eeg_text_codex.config import PathConfig
 
 
 def parse_args():
+    """Define input/output cache paths."""
+
     parser = argparse.ArgumentParser(description="Clean existing Qwen structured caption cache.")
     parser.add_argument("--input_json", default=PathConfig.structured_caption_path)
     parser.add_argument("--output_json", default=os.path.join(PathConfig.staged_output_dir, "qwen_structured_captions_clean.json"))
@@ -22,6 +31,8 @@ def parse_args():
 
 
 def clean_one_sentence(text: str) -> str:
+    """Strip common LLM artifacts and keep the first sentence only."""
+
     cleaned = text.strip().replace("\r", "\n")
     for marker in ["###", "Tags:", "Answer:", "Caption:", "Q:", "\n"]:
         if marker in cleaned:
@@ -39,6 +50,8 @@ def clean_one_sentence(text: str) -> str:
 
 
 def normalize_caption(caption: str, category: str) -> str:
+    """Ensure the caption explicitly contains the dataset category."""
+
     caption = clean_one_sentence(caption)
     if category.lower() not in caption.lower():
         fragment = caption.rstrip(".!?").strip()
@@ -51,6 +64,8 @@ def normalize_caption(caption: str, category: str) -> str:
 
 def main():
     args = parse_args()
+    # JSON is the authoritative cache because it preserves image path/category
+    # metadata; CSV is written only as a convenient table preview.
     with open(args.input_json, "r", encoding="utf-8") as f:
         records = json.load(f)
 

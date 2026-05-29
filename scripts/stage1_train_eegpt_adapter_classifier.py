@@ -1,3 +1,15 @@
+"""Stage 1: train the EEG-side adapter/classifier.
+
+This script is the first supervised step in the clean pipeline. It loads the
+EEG encoder specified in ``PathConfig``. In the recommended setting this is a
+pretrained EEGPT backbone wrapped by a small trainable adapter. The EEGPT
+backbone itself is frozen inside ``load_eeg_encoder``; only the adapter and
+classification head are optimized.
+
+The output checkpoint is reused by Stage 2, where the same EEG feature extractor
+is aligned to low/mid/high semantic text embeddings.
+"""
+
 import argparse
 import os
 import sys
@@ -17,6 +29,8 @@ from eeg_text_codex.utils import ensure_source_on_path, get_device, load_channel
 
 
 def parse_args():
+    """Define command-line options for the classification pretraining stage."""
+
     parser = argparse.ArgumentParser(description="Stage 1: train EEG encoder adapter for classification.")
     parser.add_argument("--eeg_encoder_type", choices=["channelnet", "eegpt"], default=PathConfig.eeg_encoder_type)
     parser.add_argument("--init_encoder_path", default=PathConfig.eeg_encoder_path)
@@ -43,6 +57,13 @@ def parse_args():
 
 
 def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
+    """Create an EEG-only loader for one split.
+
+    Images are not loaded here because Stage 1 only needs EEG tensors and class
+    labels. The dataset still keeps image names internally so later stages can
+    match each EEG trial to its semantic target.
+    """
+
     dataset = EEGImageDataset(
         eeg_dataset=paths.eeg_dataset,
         splits_path=paths.splits_path,
@@ -64,6 +85,8 @@ def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
 
 @torch.no_grad()
 def evaluate(model, loader, criterion, device, desc, max_batches=-1):
+    """Evaluate classification loss and accuracy without updating weights."""
+
     model.eval()
     total_loss = 0.0
     total_correct = 0
@@ -83,9 +106,15 @@ def evaluate(model, loader, criterion, device, desc, max_batches=-1):
 
 def main():
     args = parse_args()
+
+    # Keep old command compatibility: if the user selects EEGPT but leaves the
+    # historical ChannelNet output path unchanged, redirect to an EEGPT-specific
+    # directory so checkpoints are not mixed.
     default_channelnet_output = os.path.join(PathConfig.staged_output_dir, "stage1_channelnet")
     if args.eeg_encoder_type == "eegpt" and args.output_dir == default_channelnet_output:
         args.output_dir = os.path.join(PathConfig.staged_output_dir, "stage1_eegpt_adapter")
+    # PathConfig carries local dataset/model paths. Command-line overrides are
+    # written back to this object before the encoder is constructed.
     paths = PathConfig()
     data_cfg = DataConfig()
     ensure_source_on_path(paths.source_root)
@@ -94,6 +123,7 @@ def main():
     device = get_device(args.device)
     os.makedirs(args.output_dir, exist_ok=True)
 
+    # Three loaders share the same EEG preprocessing window and label mapping.
     train_loader = make_loader(paths, data_cfg, "train", args.batch_size, True, args.num_workers)
     val_loader = make_loader(paths, data_cfg, "val", args.batch_size, False, args.num_workers)
     test_loader = make_loader(paths, data_cfg, "test", args.batch_size, False, args.num_workers)
@@ -110,9 +140,13 @@ def main():
     paths.eegpt_target_time_len = args.eegpt_target_time_len
     paths.eeg_feature_dim = args.eeg_feature_dim
 
+    # For EEGPT, load_eeg_encoder returns a wrapper with frozen backbone and a
+    # list named trainable_parameters containing adapter/classifier parameters.
     model = load_eeg_encoder(paths, device)
     model.train()
 
+    # Only the adapter/classifier is trained for EEGPT; ChannelNet is left as a
+    # fallback path for old experiments.
     if args.eeg_encoder_type == "eegpt":
         trainable_params = model.trainable_parameters
     else:
@@ -129,6 +163,8 @@ def main():
         running_count = 0
         pbar = tqdm(train_loader, desc=f"Stage 1 train epoch {epoch + 1}/{args.num_epochs}")
         for batch in pbar:
+            # Dataset EEG shape is [B, C, T]; the encoder expects an explicit
+            # singleton image-like channel dimension [B, 1, C, T].
             eeg = batch["eeg"].unsqueeze(1).to(device)
             labels = batch["labels"].to(device)
             _, logits = model(eeg)
@@ -152,6 +188,9 @@ def main():
 
         val_loss, val_acc = evaluate(model, val_loader, criterion, device, "Stage 1 val", args.max_eval_batches)
         print(f"Epoch {epoch + 1}: val_loss={val_loss:.6f} val_acc={val_acc:.4f}")
+
+        # Always save a "last" checkpoint for resuming/debugging, and save
+        # "best" only when validation accuracy improves.
         if args.eeg_encoder_type == "eegpt":
             model.save_adapter(
                 os.path.join(args.output_dir, "last"),
@@ -191,6 +230,8 @@ def main():
         if args.max_steps > 0 and global_step >= args.max_steps:
             break
 
+    # Reload the best checkpoint before the final test report so the printed
+    # test metric corresponds to the selected validation model.
     if args.eeg_encoder_type == "eegpt":
         paths.eeg_encoder_path = os.path.join(args.output_dir, "best")
         best_model = load_eeg_encoder(paths, device)

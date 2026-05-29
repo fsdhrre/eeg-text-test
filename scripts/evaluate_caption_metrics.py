@@ -1,3 +1,19 @@
+"""Evaluate generated captions with lexical and semantic text metrics.
+
+The input is a Stage 4 CSV containing a reference caption and a generated
+caption per EEG sample. This script adds per-row metrics and writes a compact
+JSON summary for paper tables.
+
+Implemented metrics:
+    - token F1, if already present in the input CSV
+    - CLIP text similarity between reference and generated captions
+    - optional Sentence-BERT/transformer similarity from a local model
+    - BLEU-1/2/3/4 and corpus BLEU-4
+    - ROUGE-L
+    - METEOR-like unigram alignment score
+    - CIDEr-like TF-IDF n-gram cosine score
+"""
+
 import argparse
 import json
 import math
@@ -21,6 +37,8 @@ from eeg_text_codex.utils import get_device
 
 
 def parse_args():
+    """Define input/output files and optional local text-encoder paths."""
+
     parser = argparse.ArgumentParser(description="Evaluate generated captions with text similarity metrics.")
     parser.add_argument("--input_csv", default=os.path.join(PathConfig.staged_output_dir, "stage4_structured_retrieval_full_evidence_llm.csv"))
     parser.add_argument("--output_csv", default=os.path.join(PathConfig.staged_output_dir, "stage4_structured_retrieval_full_evidence_llm_metrics.csv"))
@@ -35,14 +53,20 @@ def parse_args():
 
 
 def tokenize(text):
+    """Lowercase alphanumeric tokenizer shared by lexical metrics."""
+
     return re.findall(r"[a-z0-9]+", str(text).lower())
 
 
 def ngrams(tokens, n):
+    """Return contiguous n-grams as tuples."""
+
     return [tuple(tokens[i:i + n]) for i in range(max(0, len(tokens) - n + 1))]
 
 
 def sentence_bleu(reference, hypothesis, max_n=4, smooth=1.0):
+    """Sentence-level BLEU with simple add-one smoothing."""
+
     ref = tokenize(reference)
     hyp = tokenize(hypothesis)
     if not hyp:
@@ -59,6 +83,8 @@ def sentence_bleu(reference, hypothesis, max_n=4, smooth=1.0):
 
 
 def corpus_bleu(references, hypotheses, max_n=4, smooth=1.0):
+    """Corpus BLEU computed from global n-gram counts."""
+
     matches = [0.0] * max_n
     totals = [0.0] * max_n
     ref_len = 0
@@ -79,6 +105,8 @@ def corpus_bleu(references, hypotheses, max_n=4, smooth=1.0):
 
 
 def lcs_len(a, b):
+    """Length of the longest common subsequence for ROUGE-L."""
+
     if not a or not b:
         return 0
     prev = [0] * (len(b) + 1)
@@ -94,6 +122,8 @@ def lcs_len(a, b):
 
 
 def rouge_l(reference, hypothesis):
+    """ROUGE-L F-score based on longest common subsequence."""
+
     ref = tokenize(reference)
     hyp = tokenize(hypothesis)
     if not ref or not hyp:
@@ -108,6 +138,12 @@ def rouge_l(reference, hypothesis):
 
 
 def meteor_like(reference, hypothesis):
+    """Lightweight METEOR-style score.
+
+    This is not the official METEOR implementation. It captures the same basic
+    idea: unigram precision/recall with a fragmentation penalty.
+    """
+
     ref = tokenize(reference)
     hyp = tokenize(hypothesis)
     if not ref or not hyp:
@@ -142,6 +178,8 @@ def meteor_like(reference, hypothesis):
 
 
 def cider_scores(references, hypotheses, max_n=4):
+    """Lightweight CIDEr-style score using TF-IDF n-gram cosine similarity."""
+
     tokenized_refs = [tokenize(text) for text in references]
     tokenized_hyps = [tokenize(text) for text in hypotheses]
     n_docs = len(tokenized_refs)
@@ -182,6 +220,8 @@ def cider_scores(references, hypotheses, max_n=4):
 
 @torch.no_grad()
 def encode_clip_texts(texts, tokenizer, model, device, batch_size):
+    """Encode texts with CLIP text encoder and L2-normalize embeddings."""
+
     chunks = []
     for start in tqdm(range(0, len(texts), batch_size), desc="CLIP text encode", leave=False):
         batch = texts[start:start + batch_size]
@@ -192,6 +232,8 @@ def encode_clip_texts(texts, tokenizer, model, device, batch_size):
 
 @torch.no_grad()
 def encode_sentence_texts(texts, tokenizer, model, device, batch_size):
+    """Encode texts with a generic transformer by mean-pooling token states."""
+
     chunks = []
     for start in tqdm(range(0, len(texts), batch_size), desc="Sentence text encode", leave=False):
         batch = texts[start:start + batch_size]
@@ -205,6 +247,8 @@ def encode_sentence_texts(texts, tokenizer, model, device, batch_size):
 
 
 def mean_or_none(values):
+    """Return a Python float mean while ignoring NaN values."""
+
     values = [v for v in values if not pd.isna(v)]
     return float(sum(values) / len(values)) if values else None
 
@@ -215,6 +259,7 @@ def main():
     references = df[args.reference_col].fillna("").astype(str).tolist()
     hypotheses = df[args.generated_col].fillna("").astype(str).tolist()
 
+    # Lexical metrics are computed first and require no neural model.
     df["bleu1"] = [sentence_bleu(r, h, max_n=1) for r, h in zip(references, hypotheses)]
     df["bleu2"] = [sentence_bleu(r, h, max_n=2) for r, h in zip(references, hypotheses)]
     df["bleu3"] = [sentence_bleu(r, h, max_n=3) for r, h in zip(references, hypotheses)]
@@ -223,6 +268,8 @@ def main():
     df["meteor"] = [meteor_like(r, h) for r, h in zip(references, hypotheses)]
     df["cider"] = cider_scores(references, hypotheses)
 
+    # Semantic text similarity is computed with frozen text encoders. CLIP is
+    # always used because it matches the training/retrieval semantic space.
     device = get_device(args.device)
     clip_tokenizer = AutoTokenizer.from_pretrained(args.clip_path, local_files_only=True)
     clip_model = CLIPTextModelWithProjection.from_pretrained(args.clip_path, local_files_only=True).to(device).eval()
@@ -232,6 +279,8 @@ def main():
 
     sentence_available = False
     if args.sentence_model_path:
+        # Sentence-BERT is optional because the project is designed to run with
+        # local model files only; many machines will not have this model.
         sentence_tokenizer = AutoTokenizer.from_pretrained(args.sentence_model_path, local_files_only=True)
         sentence_model = AutoModel.from_pretrained(args.sentence_model_path, local_files_only=True).to(device).eval()
         ref_sent = encode_sentence_texts(references, sentence_tokenizer, sentence_model, device, args.batch_size)
@@ -244,6 +293,7 @@ def main():
     os.makedirs(os.path.dirname(args.output_csv), exist_ok=True)
     df.to_csv(args.output_csv, index=False)
 
+    # The JSON summary is the compact artifact used in tables/ablation reports.
     summary = {
         "input_csv": args.input_csv,
         "rows": int(len(df)),

@@ -1,3 +1,14 @@
+"""Generate structured one-sentence image captions with Qwen-VL.
+
+This is an offline data-preparation script. It visits every unique image used
+by the EEG train/val/test splits, sends the image directly into Qwen-VL-Chat,
+and caches a concise English description. The cached captions become the source
+text for the low/mid/high semantic database.
+
+The script is resumable: existing records are loaded and skipped unless
+``--overwrite`` is set.
+"""
+
 import argparse
 import csv
 import json
@@ -30,6 +41,8 @@ PROMPT_TEMPLATE = (
 
 
 def parse_args():
+    """Define local model/data/cache options."""
+
     parser = argparse.ArgumentParser(
         description="Generate one-sentence structured image captions with local Qwen-VL-Chat."
     )
@@ -79,6 +92,8 @@ def clean_one_sentence(text: str) -> str:
 def normalize_caption_for_category(caption: str, category: str) -> str:
     """Make generated captions consistently start with the dataset category."""
 
+    # Qwen is asked not to repeat the category. We add a deterministic prefix
+    # afterward so every caption has the same schema and the label cannot drift.
     caption = clean_one_sentence(caption)
     expected_prefix = f"The category is {category};"
     fragment = caption.rstrip(".!?").strip()
@@ -101,6 +116,8 @@ def normalize_caption_for_category(caption: str, category: str) -> str:
 
 
 def load_existing(path: str) -> Dict[str, Dict]:
+    """Load a partially generated cache if it exists."""
+
     if not path or not os.path.exists(path):
         return {}
     with open(path, "r", encoding="utf-8") as f:
@@ -109,6 +126,8 @@ def load_existing(path: str) -> Dict[str, Dict]:
 
 
 def save_outputs(records: Dict[str, Dict], json_path: str, csv_path: str) -> None:
+    """Write both JSON cache and CSV preview for manual inspection."""
+
     json_dir = os.path.dirname(json_path)
     if json_dir:
         os.makedirs(json_dir, exist_ok=True)
@@ -133,6 +152,8 @@ def save_outputs(records: Dict[str, Dict], json_path: str, csv_path: str) -> Non
 
 
 def iter_used_images(args, label_map: Dict[str, str]) -> List[Dict[str, str]]:
+    """Return the unique image files referenced by selected EEG splits."""
+
     loaded = torch.load(args.eeg_dataset, map_location="cpu")
     dataset = loaded["dataset"]
     images = loaded["images"]
@@ -144,6 +165,8 @@ def iter_used_images(args, label_map: Dict[str, str]) -> List[Dict[str, str]]:
     for split_name in selected_splits:
         split_idx = split_file["splits"][args.split_num][split_name]
         for idx in split_idx:
+            # Keep the same EEG-length filter as the training datasets so the
+            # caption cache exactly matches usable EEG samples.
             if not 450 <= dataset[idx]["eeg"].size(1) <= 600:
                 continue
             image_name = images[dataset[idx]["image"]]
@@ -160,6 +183,12 @@ def iter_used_images(args, label_map: Dict[str, str]) -> List[Dict[str, str]]:
 
 
 def load_qwen(args):
+    """Load local Qwen-VL-Chat from disk.
+
+    The cwd switch is kept for Qwen-VL implementations that expect relative
+    imports/resources inside the model directory.
+    """
+
     os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
     from modelscope import AutoModelForCausalLM, AutoTokenizer
 
@@ -197,6 +226,8 @@ def main():
     ensure_source_on_path(PathConfig.source_root)
     from constants import label_map
 
+    # Build the worklist first. This is cheap and supports --dry_run to verify
+    # paths before loading the large VLM.
     items = iter_used_images(args, label_map)
     records = {} if args.overwrite else load_existing(args.output_json)
     missing = [item for item in items if args.overwrite or item["image_name"] not in records]
@@ -218,6 +249,8 @@ def main():
     for step, item in enumerate(tqdm(missing, desc="Qwen structured captions"), start=1):
         if not os.path.exists(item["image_path"]):
             raise FileNotFoundError(item["image_path"])
+        # The model sees the image and produces a description; the category is
+        # enforced afterward from the dataset label to avoid random label names.
         caption = generate_caption(tokenizer, model, item["image_path"], item["category"])
         caption = normalize_caption_for_category(caption, item["category"])
         records[item["image_name"]] = {
