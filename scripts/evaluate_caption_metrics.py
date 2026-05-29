@@ -1,17 +1,16 @@
-"""Evaluate generated captions with lexical and semantic text metrics.
+"""用词面指标和语义指标评估生成 caption。
 
-The input is a Stage 4 CSV containing a reference caption and a generated
-caption per EEG sample. This script adds per-row metrics and writes a compact
-JSON summary for paper tables.
+输入是阶段四生成的 CSV，每个 EEG 样本包含 reference caption 和 generated caption。
+脚本会给每一行添加指标，并额外写出一个紧凑的 JSON summary，方便放进论文表格。
 
-Implemented metrics:
-    - token F1, if already present in the input CSV
-    - CLIP text similarity between reference and generated captions
-    - optional Sentence-BERT/transformer similarity from a local model
-    - BLEU-1/2/3/4 and corpus BLEU-4
+实现的指标：
+    - token F1，如果输入 CSV 中已经包含该列
+    - reference 和 generated caption 之间的 CLIP text similarity
+    - 可选的 Sentence-BERT / transformer 文本相似度，本地有模型时才计算
+    - BLEU-1/2/3/4 以及 corpus BLEU-4
     - ROUGE-L
-    - METEOR-like unigram alignment score
-    - CIDEr-like TF-IDF n-gram cosine score
+    - 类 METEOR 的 unigram 对齐分数
+    - 类 CIDEr 的 TF-IDF n-gram 余弦分数
 """
 
 import argparse
@@ -37,7 +36,7 @@ from eeg_text_codex.utils import get_device
 
 
 def parse_args():
-    """Define input/output files and optional local text-encoder paths."""
+    """定义输入输出文件，以及可选的本地文本编码器路径。"""
 
     parser = argparse.ArgumentParser(description="Evaluate generated captions with text similarity metrics.")
     parser.add_argument("--input_csv", default=os.path.join(PathConfig.staged_output_dir, "stage4_structured_retrieval_full_evidence_llm.csv"))
@@ -53,19 +52,19 @@ def parse_args():
 
 
 def tokenize(text):
-    """Lowercase alphanumeric tokenizer shared by lexical metrics."""
+    """词面指标共用的简单 tokenizer：转小写并保留字母数字。"""
 
     return re.findall(r"[a-z0-9]+", str(text).lower())
 
 
 def ngrams(tokens, n):
-    """Return contiguous n-grams as tuples."""
+    """把 token 序列转成连续 n-gram tuple。"""
 
     return [tuple(tokens[i:i + n]) for i in range(max(0, len(tokens) - n + 1))]
 
 
 def sentence_bleu(reference, hypothesis, max_n=4, smooth=1.0):
-    """Sentence-level BLEU with simple add-one smoothing."""
+    """句子级 BLEU，使用简单加一平滑。"""
 
     ref = tokenize(reference)
     hyp = tokenize(hypothesis)
@@ -83,7 +82,7 @@ def sentence_bleu(reference, hypothesis, max_n=4, smooth=1.0):
 
 
 def corpus_bleu(references, hypotheses, max_n=4, smooth=1.0):
-    """Corpus BLEU computed from global n-gram counts."""
+    """基于全局 n-gram 计数计算 corpus BLEU。"""
 
     matches = [0.0] * max_n
     totals = [0.0] * max_n
@@ -105,7 +104,7 @@ def corpus_bleu(references, hypotheses, max_n=4, smooth=1.0):
 
 
 def lcs_len(a, b):
-    """Length of the longest common subsequence for ROUGE-L."""
+    """计算 ROUGE-L 所需的最长公共子序列长度。"""
 
     if not a or not b:
         return 0
@@ -122,7 +121,7 @@ def lcs_len(a, b):
 
 
 def rouge_l(reference, hypothesis):
-    """ROUGE-L F-score based on longest common subsequence."""
+    """基于最长公共子序列的 ROUGE-L F-score。"""
 
     ref = tokenize(reference)
     hyp = tokenize(hypothesis)
@@ -138,10 +137,10 @@ def rouge_l(reference, hypothesis):
 
 
 def meteor_like(reference, hypothesis):
-    """Lightweight METEOR-style score.
+    """轻量版 METEOR 风格分数。
 
-    This is not the official METEOR implementation. It captures the same basic
-    idea: unigram precision/recall with a fragmentation penalty.
+    这不是官方 METEOR 实现，只保留核心思想：unigram precision / recall，
+    再加一个片段化惩罚。
     """
 
     ref = tokenize(reference)
@@ -178,7 +177,7 @@ def meteor_like(reference, hypothesis):
 
 
 def cider_scores(references, hypotheses, max_n=4):
-    """Lightweight CIDEr-style score using TF-IDF n-gram cosine similarity."""
+    """轻量版 CIDEr 风格分数：使用 TF-IDF n-gram 余弦相似度。"""
 
     tokenized_refs = [tokenize(text) for text in references]
     tokenized_hyps = [tokenize(text) for text in hypotheses]
@@ -220,7 +219,7 @@ def cider_scores(references, hypotheses, max_n=4):
 
 @torch.no_grad()
 def encode_clip_texts(texts, tokenizer, model, device, batch_size):
-    """Encode texts with CLIP text encoder and L2-normalize embeddings."""
+    """使用 CLIP text encoder 编码文本，并对 embedding 做 L2 归一化。"""
 
     chunks = []
     for start in tqdm(range(0, len(texts), batch_size), desc="CLIP text encode", leave=False):
@@ -232,7 +231,7 @@ def encode_clip_texts(texts, tokenizer, model, device, batch_size):
 
 @torch.no_grad()
 def encode_sentence_texts(texts, tokenizer, model, device, batch_size):
-    """Encode texts with a generic transformer by mean-pooling token states."""
+    """使用通用 transformer 编码文本，对 token hidden states 做 mean pooling。"""
 
     chunks = []
     for start in tqdm(range(0, len(texts), batch_size), desc="Sentence text encode", leave=False):
@@ -247,7 +246,7 @@ def encode_sentence_texts(texts, tokenizer, model, device, batch_size):
 
 
 def mean_or_none(values):
-    """Return a Python float mean while ignoring NaN values."""
+    """忽略 NaN 后返回 Python float 均值。"""
 
     values = [v for v in values if not pd.isna(v)]
     return float(sum(values) / len(values)) if values else None
@@ -259,7 +258,7 @@ def main():
     references = df[args.reference_col].fillna("").astype(str).tolist()
     hypotheses = df[args.generated_col].fillna("").astype(str).tolist()
 
-    # Lexical metrics are computed first and require no neural model.
+    # 先计算词面指标，这些指标不需要加载神经网络模型。
     df["bleu1"] = [sentence_bleu(r, h, max_n=1) for r, h in zip(references, hypotheses)]
     df["bleu2"] = [sentence_bleu(r, h, max_n=2) for r, h in zip(references, hypotheses)]
     df["bleu3"] = [sentence_bleu(r, h, max_n=3) for r, h in zip(references, hypotheses)]
@@ -268,8 +267,7 @@ def main():
     df["meteor"] = [meteor_like(r, h) for r, h in zip(references, hypotheses)]
     df["cider"] = cider_scores(references, hypotheses)
 
-    # Semantic text similarity is computed with frozen text encoders. CLIP is
-    # always used because it matches the training/retrieval semantic space.
+    # 语义文本相似度由冻结文本编码器计算。CLIP 必算，因为它和训练/检索时的语义空间一致。
     device = get_device(args.device)
     clip_tokenizer = AutoTokenizer.from_pretrained(args.clip_path, local_files_only=True)
     clip_model = CLIPTextModelWithProjection.from_pretrained(args.clip_path, local_files_only=True).to(device).eval()
@@ -279,8 +277,7 @@ def main():
 
     sentence_available = False
     if args.sentence_model_path:
-        # Sentence-BERT is optional because the project is designed to run with
-        # local model files only; many machines will not have this model.
+        # Sentence-BERT 是可选项，因为项目默认只使用本地模型文件，很多机器未必有该模型。
         sentence_tokenizer = AutoTokenizer.from_pretrained(args.sentence_model_path, local_files_only=True)
         sentence_model = AutoModel.from_pretrained(args.sentence_model_path, local_files_only=True).to(device).eval()
         ref_sent = encode_sentence_texts(references, sentence_tokenizer, sentence_model, device, args.batch_size)
@@ -293,7 +290,7 @@ def main():
     os.makedirs(os.path.dirname(args.output_csv), exist_ok=True)
     df.to_csv(args.output_csv, index=False)
 
-    # The JSON summary is the compact artifact used in tables/ablation reports.
+    # JSON summary 是论文表格和消融实验中最常用的紧凑结果文件。
     summary = {
         "input_csv": args.input_csv,
         "rows": int(len(df)),

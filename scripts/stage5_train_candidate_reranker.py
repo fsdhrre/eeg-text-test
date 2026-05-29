@@ -1,12 +1,11 @@
-"""Optional Stage 5: train a candidate-label reranker.
+"""可选阶段五：训练候选类别 reranker。
 
-This script is an ablation/extension, not the default final route. It freezes
-the trained EEG encoder and semantic heads, builds a candidate label set from
-classifier top-k plus retrieval top-k labels, and trains a small MLP reranker to
-choose the true label from candidate evidence features.
+这个脚本属于消融/扩展实验，不是默认最终主线。它会冻结已经训练好的 EEG encoder 和
+三层语义头，然后用“分类器 top-k + 检索 top-k”构造候选类别集合，再训练一个小型
+MLP reranker，从候选类别的 evidence feature 中选择真实类别。
 
-In the current experiments the rule-based evidence decision is stronger, but
-this file is kept so the learned-reranker alternative is reproducible.
+当前实验中，规则式 evidence decision 表现更好；保留该脚本是为了让 learned reranker
+这个替代方案可复现。
 """
 
 import argparse
@@ -39,7 +38,7 @@ from scripts.stage4_retrieval_infer import (
 
 
 def parse_args():
-    """Define reranker, frozen-checkpoint, and candidate-generation settings."""
+    """定义 reranker、冻结 checkpoint 和候选类别生成相关参数。"""
 
     parser = argparse.ArgumentParser(description="Stage 5: train a candidate label reranker on retrieval evidence.")
     parser.add_argument("--checkpoint_dir", default=os.path.join(PathConfig.staged_output_dir, "stage2_eegpt_structured", "best"))
@@ -70,7 +69,7 @@ def parse_args():
 
 
 def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
-    """Create an EEG-only loader for reranker training/evaluation."""
+    """为 reranker 训练/评估构建只读取 EEG 和标签的 loader。"""
 
     dataset = EEGImageDataset(
         eeg_dataset=paths.eeg_dataset,
@@ -92,7 +91,7 @@ def make_loader(paths, data_cfg, split_name, batch_size, shuffle, num_workers):
 
 
 def classifier_top_labels(cls_logits, id2label, top_k):
-    """Convert classifier logits into a set of top-k label names."""
+    """把分类器 logits 转成 top-k 类别名称集合。"""
 
     _, indices = torch.topk(cls_logits.float(), k=min(top_k, cls_logits.numel()), dim=-1)
     return {id2label[str(int(index.item()))] for index in indices}
@@ -100,12 +99,11 @@ def classifier_top_labels(cls_logits, id2label, top_k):
 
 @torch.no_grad()
 def build_candidate_example(eeg_encoder, multi_head, batch, db, id2label, args, device, add_gold=False):
-    """Build reranker training examples for one EEG batch.
+    """为一个 EEG batch 构造 reranker 训练样本。
 
-    Each example is a variable-size candidate list. For every candidate label,
-    ``candidate_feature_tensor`` creates a feature vector summarizing classifier
-    confidence and low/mid/high retrieval evidence. The target is the index of
-    the true label in that candidate list.
+    每个样本对应一个长度可变的候选类别列表。对每个候选类别，
+    ``candidate_feature_tensor`` 会构造一个 feature vector，汇总分类器置信度以及
+    low / mid / high 三层检索证据。target 是真实类别在候选列表中的下标。
     """
 
     eeg = batch["eeg"].unsqueeze(1).to(device)
@@ -125,9 +123,8 @@ def build_candidate_example(eeg_encoder, multi_head, batch, db, id2label, args, 
         candidate_labels.update(classifier_top_labels(cls_logits[i], id2label, args.classifier_top_k))
         candidate_labels.update(top_retrieval_labels(predictions_by_level, db, args.top_k))
         if add_gold:
-            # During training, adding the gold label prevents the model from
-            # losing samples where retrieval/classifier both miss the target.
-            # Evaluation disables this so candidate_hit remains honest.
+            # 训练时加入 gold label，可以避免“分类器和检索都没召回真值”时样本被丢掉。
+            # 评估时关闭该选项，这样 candidate_hit 才是真实召回率。
             candidate_labels.add(true_label)
 
         candidate_names, features = candidate_feature_tensor(
@@ -146,7 +143,7 @@ def build_candidate_example(eeg_encoder, multi_head, batch, db, id2label, args, 
 
 
 def train_epoch(reranker, optimizer, eeg_encoder, multi_head, loader, db, id2label, args, device):
-    """Train the reranker for one epoch over variable-size candidate sets."""
+    """在长度可变的候选集合上训练 reranker 一个 epoch。"""
 
     reranker.train()
     total_loss = 0.0
@@ -186,7 +183,7 @@ def train_epoch(reranker, optimizer, eeg_encoder, multi_head, loader, db, id2lab
 
 @torch.no_grad()
 def evaluate(reranker, eeg_encoder, multi_head, loader, db, id2label, args, device):
-    """Evaluate reranker accuracy and candidate recall."""
+    """评估 reranker accuracy 以及候选集合是否召回真实类别。"""
 
     reranker.eval()
     total_loss = 0.0
@@ -226,7 +223,7 @@ def evaluate(reranker, eeg_encoder, multi_head, loader, db, id2label, args, devi
 
 
 def save_checkpoint(path, reranker, metadata):
-    """Save reranker weights together with feature metadata."""
+    """保存 reranker 权重以及 feature 元信息。"""
 
     os.makedirs(path, exist_ok=True)
     torch.save(
@@ -252,8 +249,7 @@ def main():
 
     paths = configure_paths(args)
     data_cfg = DataConfig()
-    # Load the same semantic DB used by Stage 4 so reranker features match
-    # inference-time evidence.
+    # 加载和阶段四一致的语义数据库，保证 reranker feature 和推理阶段 evidence 一致。
     db = load_semantic_db(args.semantic_db_path, device)
     ensure_label_indices(db, device)
 
@@ -261,8 +257,7 @@ def main():
     val_loader = make_loader(paths, data_cfg, "val", args.batch_size, False, args.num_workers)
     test_loader = make_loader(paths, data_cfg, "test", args.batch_size, False, args.num_workers)
 
-    # Stage 5 does not update the EEG model or semantic heads. It only learns
-    # how to score labels from their existing evidence features.
+    # 阶段五不更新 EEG 模型和语义头，只学习如何根据已有 evidence feature 给候选类别打分。
     eeg_encoder = load_eeg_encoder(paths, device).eval()
     multi_head = MultiHead(args.eeg_feature_dim, 512).to(device).eval()
     multi_head.load_state_dict(torch.load(os.path.join(args.checkpoint_dir, "multi_head.pt"), map_location=device))
@@ -271,8 +266,8 @@ def main():
     for parameter in multi_head.parameters():
         parameter.requires_grad = False
 
-    # CandidateReranker is a small MLP applied independently to each candidate
-    # label; softmax over candidates chooses the final label.
+    # CandidateReranker 是一个小型 MLP，独立作用于每个候选类别；
+    # 最后在候选类别维度做 softmax，选出最终类别。
     reranker = CandidateReranker(len(FEATURE_NAMES), args.hidden_dim, args.dropout).to(device)
     optimizer = torch.optim.AdamW(reranker.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     best_val = -1.0

@@ -1,12 +1,10 @@
-"""Generate structured one-sentence image captions with Qwen-VL.
+"""使用 Qwen-VL 为图片生成结构化的一句话英文描述。
 
-This is an offline data-preparation script. It visits every unique image used
-by the EEG train/val/test splits, sends the image directly into Qwen-VL-Chat,
-and caches a concise English description. The cached captions become the source
-text for the low/mid/high semantic database.
+这是一个离线数据准备脚本。它会遍历 EEG train / val / test split 中实际用到的
+唯一图片，把图片直接输入 Qwen-VL-Chat，并缓存一句简洁英文描述。缓存下来的
+caption 后续会作为 low / mid / high 语义数据库的文本来源。
 
-The script is resumable: existing records are loaded and skipped unless
-``--overwrite`` is set.
+脚本支持断点续跑：已有记录会被加载并跳过，除非显式设置 ``--overwrite``。
 """
 
 import argparse
@@ -41,7 +39,7 @@ PROMPT_TEMPLATE = (
 
 
 def parse_args():
-    """Define local model/data/cache options."""
+    """定义本地模型、数据路径和缓存输出参数。"""
 
     parser = argparse.ArgumentParser(
         description="Generate one-sentence structured image captions with local Qwen-VL-Chat."
@@ -69,7 +67,7 @@ def parse_args():
 
 
 def clean_one_sentence(text: str) -> str:
-    """Keep a single plain English sentence from Qwen's answer."""
+    """从 Qwen 输出中只保留一句干净的英文描述。"""
 
     cleaned = text.strip().replace("\r", "\n")
     for marker in ["###", "Tags:", "Answer:", "Caption:", "Q:", "\n"]:
@@ -90,10 +88,10 @@ def clean_one_sentence(text: str) -> str:
 
 
 def normalize_caption_for_category(caption: str, category: str) -> str:
-    """Make generated captions consistently start with the dataset category."""
+    """让生成 caption 统一以数据集类别作为开头。"""
 
-    # Qwen is asked not to repeat the category. We add a deterministic prefix
-    # afterward so every caption has the same schema and the label cannot drift.
+    # prompt 中要求 Qwen 不要自己猜类别；这里用数据集标签补上固定前缀，
+    # 保证每条 caption 格式一致，而且类别不会随机漂移。
     caption = clean_one_sentence(caption)
     expected_prefix = f"The category is {category};"
     fragment = caption.rstrip(".!?").strip()
@@ -116,7 +114,7 @@ def normalize_caption_for_category(caption: str, category: str) -> str:
 
 
 def load_existing(path: str) -> Dict[str, Dict]:
-    """Load a partially generated cache if it exists."""
+    """如果已有部分生成结果，就读取缓存以便续跑。"""
 
     if not path or not os.path.exists(path):
         return {}
@@ -126,7 +124,7 @@ def load_existing(path: str) -> Dict[str, Dict]:
 
 
 def save_outputs(records: Dict[str, Dict], json_path: str, csv_path: str) -> None:
-    """Write both JSON cache and CSV preview for manual inspection."""
+    """同时写出 JSON 缓存和 CSV 预览，方便人工检查。"""
 
     json_dir = os.path.dirname(json_path)
     if json_dir:
@@ -152,7 +150,7 @@ def save_outputs(records: Dict[str, Dict], json_path: str, csv_path: str) -> Non
 
 
 def iter_used_images(args, label_map: Dict[str, str]) -> List[Dict[str, str]]:
-    """Return the unique image files referenced by selected EEG splits."""
+    """返回指定 EEG split 中实际引用到的唯一图片文件。"""
 
     loaded = torch.load(args.eeg_dataset, map_location="cpu")
     dataset = loaded["dataset"]
@@ -165,8 +163,7 @@ def iter_used_images(args, label_map: Dict[str, str]) -> List[Dict[str, str]]:
     for split_name in selected_splits:
         split_idx = split_file["splits"][args.split_num][split_name]
         for idx in split_idx:
-            # Keep the same EEG-length filter as the training datasets so the
-            # caption cache exactly matches usable EEG samples.
+            # 和训练数据保持同一个 EEG 长度过滤条件，确保 caption 缓存只覆盖可用样本。
             if not 450 <= dataset[idx]["eeg"].size(1) <= 600:
                 continue
             image_name = images[dataset[idx]["image"]]
@@ -183,10 +180,9 @@ def iter_used_images(args, label_map: Dict[str, str]) -> List[Dict[str, str]]:
 
 
 def load_qwen(args):
-    """Load local Qwen-VL-Chat from disk.
+    """从本地磁盘加载 Qwen-VL-Chat。
 
-    The cwd switch is kept for Qwen-VL implementations that expect relative
-    imports/resources inside the model directory.
+    这里切换 cwd 是为了兼容部分 Qwen-VL 实现，它们会依赖模型目录下的相对导入或资源文件。
     """
 
     os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
@@ -210,7 +206,7 @@ def load_qwen(args):
 
 
 def generate_caption(tokenizer, model, image_path: str, category: str) -> str:
-    """Send the image path directly to Qwen-VL-Chat with one instruction."""
+    """把图片路径和一条指令直接发送给 Qwen-VL-Chat。"""
 
     prompt = PROMPT_TEMPLATE.format(category=category)
     query = tokenizer.from_list_format([
@@ -226,8 +222,7 @@ def main():
     ensure_source_on_path(PathConfig.source_root)
     from constants import label_map
 
-    # Build the worklist first. This is cheap and supports --dry_run to verify
-    # paths before loading the large VLM.
+    # 先构建待处理列表。这一步很轻量，也支持 --dry_run 在加载大模型前检查路径。
     items = iter_used_images(args, label_map)
     records = {} if args.overwrite else load_existing(args.output_json)
     missing = [item for item in items if args.overwrite or item["image_name"] not in records]
@@ -249,8 +244,7 @@ def main():
     for step, item in enumerate(tqdm(missing, desc="Qwen structured captions"), start=1):
         if not os.path.exists(item["image_path"]):
             raise FileNotFoundError(item["image_path"])
-        # The model sees the image and produces a description; the category is
-        # enforced afterward from the dataset label to avoid random label names.
+        # 模型看到图片后生成描述；类别之后由数据集标签强制写入，避免模型随机给错类别名。
         caption = generate_caption(tokenizer, model, item["image_path"], item["category"])
         caption = normalize_caption_for_category(caption, item["category"])
         records[item["image_name"]] = {
