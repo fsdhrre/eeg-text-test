@@ -47,6 +47,11 @@ def parse_args():
     parser.add_argument("--clip_path", default=PathConfig.clip_path)
     parser.add_argument("--sentence_model_path", default="", help="Optional local Sentence-BERT/transformer model path.")
     parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument(
+        "--strip_template_prefix",
+        action="store_true",
+        help="评分前去掉 'The category is X; it shows' 等固定模板前缀。",
+    )
     parser.add_argument("--device", default=TrainConfig.device)
     return parser.parse_args()
 
@@ -55,6 +60,44 @@ def tokenize(text):
     """词面指标共用的简单 tokenizer：转小写并保留字母数字。"""
 
     return re.findall(r"[a-z0-9]+", str(text).lower())
+
+
+def strip_template_prefix(text):
+    """去掉固定生成模板，让指标更关注真实视觉描述内容。"""
+
+    cleaned = str(text).strip()
+    patterns = [
+        r"^\s*the\s+category\s+is\s+[^;,.!?]+[;,:]\s*it\s+shows\s+",
+        r"^\s*this\s+image\s+shows\s+[^;:,.!?]+[;,:]\s*",
+        r"^\s*this\s+image\s+shows\s+",
+        r"^\s*it\s+shows\s+",
+    ]
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
+    if cleaned:
+        cleaned = cleaned[0].upper() + cleaned[1:]
+    return cleaned
+
+
+def token_f1(reference, hypothesis):
+    """基于剥离模板后的文本重新计算 token F1。"""
+
+    ref_tokens = tokenize(reference)
+    hyp_tokens = tokenize(hypothesis)
+    if not ref_tokens or not hyp_tokens:
+        return 0.0
+    ref_counts = Counter(ref_tokens)
+    overlap = 0
+    for token in hyp_tokens:
+        count = ref_counts.get(token, 0)
+        if count > 0:
+            overlap += 1
+            ref_counts[token] = count - 1
+    if overlap == 0:
+        return 0.0
+    precision = overlap / len(hyp_tokens)
+    recall = overlap / len(ref_tokens)
+    return 2 * precision * recall / (precision + recall)
 
 
 def ngrams(tokens, n):
@@ -257,8 +300,14 @@ def main():
     df = pd.read_csv(args.input_csv)
     references = df[args.reference_col].fillna("").astype(str).tolist()
     hypotheses = df[args.generated_col].fillna("").astype(str).tolist()
+    if args.strip_template_prefix:
+        references = [strip_template_prefix(text) for text in references]
+        hypotheses = [strip_template_prefix(text) for text in hypotheses]
+        df["reference_caption_scored"] = references
+        df["generated_caption_scored"] = hypotheses
 
     # 先计算词面指标，这些指标不需要加载神经网络模型。
+    df["token_f1_scored"] = [token_f1(r, h) for r, h in zip(references, hypotheses)]
     df["bleu1"] = [sentence_bleu(r, h, max_n=1) for r, h in zip(references, hypotheses)]
     df["bleu2"] = [sentence_bleu(r, h, max_n=2) for r, h in zip(references, hypotheses)]
     df["bleu3"] = [sentence_bleu(r, h, max_n=3) for r, h in zip(references, hypotheses)]
@@ -294,9 +343,10 @@ def main():
     summary = {
         "input_csv": args.input_csv,
         "rows": int(len(df)),
+        "strip_template_prefix": bool(args.strip_template_prefix),
         "sentence_bert_available": sentence_available,
         "metrics": {
-            "token_f1": mean_or_none(df["token_f1"].tolist()) if "token_f1" in df else None,
+            "token_f1": float(df["token_f1_scored"].mean()),
             "clip_text_similarity": float(df["clip_text_similarity"].mean()),
             "sentence_bert_similarity": mean_or_none(df["sentence_bert_similarity"].tolist()),
             "bleu1_sentence_avg": float(df["bleu1"].mean()),
