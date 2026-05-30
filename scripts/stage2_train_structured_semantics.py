@@ -56,6 +56,14 @@ def parse_args():
     parser.add_argument("--temperature", type=float, default=0.07)
     parser.add_argument("--cls_loss_weight", type=float, default=0.1)
     parser.add_argument("--full_loss_weight", type=float, default=0.2)
+    parser.add_argument(
+        "--semantic_loss_levels",
+        nargs="+",
+        choices=["low", "mid", "high"],
+        default=["low", "mid", "high"],
+        help="参与训练 loss 的语义分支。例如：--semantic_loss_levels low high。",
+    )
+    parser.add_argument("--freeze_mid_head", action="store_true", help="冻结 multi_head.head_mid 参数。")
     parser.add_argument("--max_steps", type=int, default=-1)
     parser.add_argument("--max_eval_batches", type=int, default=-1)
     parser.add_argument("--num_workers", type=int, default=0)
@@ -155,10 +163,10 @@ def retrieval_top1(pred, target):
 def trainable_params(eeg_encoder, multi_head, encoder_type):
     """返回阶段二真正需要优化的参数。"""
 
-    params = list(multi_head.parameters())
+    params = [parameter for parameter in multi_head.parameters() if parameter.requires_grad]
     if encoder_type == "eegpt":
         params += eeg_encoder.trainable_parameters
-    return params
+    return [parameter for parameter in params if parameter.requires_grad]
 
 
 def forward_batch(eeg_encoder, multi_head, batch, image_to_index, embeddings, device):
@@ -180,7 +188,14 @@ def compute_loss(predictions, targets, cls_logits, labels, args, cls_criterion):
     high_loss = contrastive_loss(predictions[2], targets[2], args.temperature)
     full_loss = contrastive_loss(predictions[2], targets[3], args.temperature)
     cls_loss = cls_criterion(cls_logits, labels)
-    loss = low_loss + mid_loss + high_loss + args.full_loss_weight * full_loss + args.cls_loss_weight * cls_loss
+    loss = torch.zeros((), device=predictions[0].device)
+    if "low" in args.semantic_loss_levels:
+        loss = loss + low_loss
+    if "mid" in args.semantic_loss_levels:
+        loss = loss + mid_loss
+    if "high" in args.semantic_loss_levels:
+        loss = loss + high_loss
+    loss = loss + args.full_loss_weight * full_loss + args.cls_loss_weight * cls_loss
     return loss, {
         "low": low_loss,
         "mid": mid_loss,
@@ -246,7 +261,11 @@ def main():
     # 加载阶段一 EEG encoder。使用 EEGPT 时，backbone 保持冻结，adapter 继续可训练。
     eeg_encoder = load_eeg_encoder(paths, device)
     multi_head = MultiHead(args.eeg_feature_dim, 512).to(device)
-    optimizer = torch.optim.AdamW(trainable_params(eeg_encoder, multi_head, args.eeg_encoder_type), lr=args.learning_rate, weight_decay=args.weight_decay)
+    if args.freeze_mid_head:
+        for parameter in multi_head.head_mid.parameters():
+            parameter.requires_grad = False
+    optim_params = trainable_params(eeg_encoder, multi_head, args.eeg_encoder_type)
+    optimizer = torch.optim.AdamW(optim_params, lr=args.learning_rate, weight_decay=args.weight_decay)
     cls_criterion = nn.CrossEntropyLoss()
     best_val = float("inf")
     global_step = 0
@@ -266,7 +285,7 @@ def main():
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(trainable_params(eeg_encoder, multi_head, args.eeg_encoder_type), 1.0)
+            torch.nn.utils.clip_grad_norm_(optim_params, 1.0)
             optimizer.step()
             global_step += 1
             running += loss.item()
@@ -297,6 +316,8 @@ def main():
             "temperature": args.temperature,
             "cls_loss_weight": args.cls_loss_weight,
             "full_loss_weight": args.full_loss_weight,
+            "semantic_loss_levels": args.semantic_loss_levels,
+            "freeze_mid_head": args.freeze_mid_head,
         }
         save_checkpoint(os.path.join(args.output_dir, "last"), eeg_encoder, multi_head, metadata, args.eeg_encoder_type)
         if val_metrics["loss"] < best_val:

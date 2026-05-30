@@ -58,6 +58,12 @@ def parse_args():
     parser.add_argument("--output_path", default=os.path.join(PathConfig.staged_output_dir, "structured_semantic_targets_all.pt"))
     parser.add_argument("--clip_path", default=PathConfig.clip_path)
     parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument(
+        "--semantic_schema",
+        choices=["decoupled", "legacy"],
+        default="decoupled",
+        help="decoupled 会从 low/high 目标中去掉 object label，并让 mid 只学习 object label。",
+    )
     parser.add_argument("--device", default=TrainConfig.device)
     return parser.parse_args()
 
@@ -96,15 +102,15 @@ def extract_actions(text):
     return sorted(set(actions))
 
 
-def structured_texts(label_name, caption):
+def structured_texts(label_name, caption, semantic_schema="decoupled"):
     """把一句 caption 转成 low / mid / high 三种语义文本。
 
     low：颜色、材质、大小、纹理等视觉属性。
-    mid：主体物体以及动作/状态。
+    mid：主体物体类别。
     high：场景、背景和上下文。
 
-    如果某个层级没有抽到显式词，就回退使用完整描述，保证每张图都有可用的
-    CLIP 文本嵌入。
+    decoupled schema 会显式禁止 low/high 文本包含 object label，避免三头都学成类别检索器。
+    legacy schema 保留旧行为，方便复现实验。
     """
 
     category, description = strip_caption_prefix(caption)
@@ -114,22 +120,37 @@ def structured_texts(label_name, caption):
     scenes = select_words(description, SCENE_WORDS)
     actions = extract_actions(description)
 
-    low_terms = ", ".join(colors + attributes) if colors or attributes else description
-    mid_terms = ", ".join(actions) if actions else description
-    high_terms = ", ".join(scenes) if scenes else description
+    low_terms = ", ".join(colors + attributes) if colors or attributes else "visible local attributes"
+    high_terms = ", ".join(scenes) if scenes else "general visual scene"
+
+    if semantic_schema == "legacy":
+        mid_terms = ", ".join(actions) if actions else description
+        low_text = f"Visual attributes of the {label}: {low_terms}."
+        mid_text = f"Main object and action: {label}; {mid_terms}."
+        high_text = f"Scene and context for the {label}: {high_terms}."
+        mid_terms_out = actions
+    else:
+        # 解耦版本：
+        # low 只描述颜色/材质/形状等低层属性，禁止写入 object label；
+        # mid 只负责 object label，避免动作/场景信息泄漏；
+        # high 只描述场景/上下文，禁止写入 object label。
+        low_text = f"Low-level visual attributes: {low_terms}."
+        mid_text = f"Object category: {label}."
+        high_text = f"High-level scene context: {high_terms}."
+        mid_terms_out = [label]
 
     return {
-        "low_text": f"Visual attributes of the {label}: {low_terms}.",
-        "mid_text": f"Main object and action: {label}; {mid_terms}.",
-        "high_text": f"Scene and context for the {label}: {high_terms}.",
+        "low_text": low_text,
+        "mid_text": mid_text,
+        "high_text": high_text,
         "full_text": caption,
         "low_terms": colors + attributes,
-        "mid_terms": actions,
+        "mid_terms": mid_terms_out,
         "high_terms": scenes,
     }
 
 
-def collect_rows(paths, data_cfg, split_names, caption_map):
+def collect_rows(paths, data_cfg, split_names, caption_map, semantic_schema):
     """收集 EEG split 中实际用到的唯一图片，并为每张图附上三层语义文本。"""
 
     loaded = torch.load(paths.eeg_dataset, map_location="cpu")
@@ -160,7 +181,7 @@ def collect_rows(paths, data_cfg, split_names, caption_map):
                     caption = clean_caption(f.readline())
             label = int(sample["label"])
             label_name = id2label[str(label)]
-            texts = structured_texts(label_name, caption)
+            texts = structured_texts(label_name, caption, semantic_schema)
             rows[image_name] = {
                 "image_name": image_name,
                 "label": label,
@@ -198,7 +219,7 @@ def main():
     paths = PathConfig()
     data_cfg = DataConfig()
     caption_map = load_caption_map(args.caption_map_path)
-    rows = collect_rows(paths, data_cfg, args.split_names, caption_map)
+    rows = collect_rows(paths, data_cfg, args.split_names, caption_map, args.semantic_schema)
     print(f"Structured semantic rows: {len(rows)}")
 
     # CLIP embedding 定义了共享语义空间：阶段二用于对齐，阶段四用于检索。
@@ -214,7 +235,8 @@ def main():
             "split_names": args.split_names,
             "caption_map_path": args.caption_map_path,
             "clip_path": args.clip_path,
-            "semantic_type": "structured_text",
+            "semantic_type": f"structured_text_{args.semantic_schema}",
+            "semantic_schema": args.semantic_schema,
         },
         "image_names": [row["image_name"] for row in rows],
         "captions": [row["caption"] for row in rows],
