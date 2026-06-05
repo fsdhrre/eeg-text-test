@@ -37,6 +37,16 @@ The latest 50-sample classifier-guided run is stored in:
 examples/stage4_classifier_main_label_low_high_llm_50.csv
 ```
 
+The full-test old High + Reliable Low setting with low-threshold 0.35 is stored in:
+
+```text
+full_outputs/stage4_structured_old_high_reliable_low035_llm_full.csv
+metrics/stage4_structured_old_high_reliable_low035_llm_full_semantic_metrics.csv
+metrics/stage4_structured_old_high_reliable_low035_llm_full_semantic_metrics_summary.json
+```
+
+This is the main full-test output for the earlier High + Reliable Low retrieval setting.
+
 Its metric summaries are:
 
 ```text
@@ -52,4 +62,3 @@ Two accuracy values should not be mixed:
 - `caption object accuracy`: computed after LLM generation, measuring whether the generated caption contains the correct object category.
 
 The t-SNE/classification figures report EEG classifier behavior. The caption result tables report final generated text behavior.
-

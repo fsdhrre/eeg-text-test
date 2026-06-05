@@ -1,0 +1,22 @@
+{
+  "input_csv": "outputs/stage4_structured_old_high_reliable_low035_llm_full.csv",
+  "rows": 1987,
+  "strip_template_prefix": true,
+  "image_clip_available": true,
+  "metrics": {
+    "object_accuracy": 0.24760946149974836,
+    "image_text_clipscore": 0.19986106224534317,
+    "clip_text_similarity": 0.4901342701239987,
+    "token_f1": 0.2722252568530597,
+    "bleu1_sentence_avg": 0.2715746187344125,
+    "bleu2_sentence_avg": 0.17585346007401026,
+    "bleu3_sentence_avg": 0.1381708799216701,
+    "bleu4_sentence_avg": 0.12215727426972166,
+    "bleu4_corpus": 0.04043022107492771,
+    "rouge_l": 0.23995394147553345,
+    "meteor": 0.18358844653314785,
+    "cider": 0.3543594976379901,
+    "cue_coverage": 0.33115423159761076,
+    "evidence_faithfulness": 0.8736716552461848
+  }
+}
