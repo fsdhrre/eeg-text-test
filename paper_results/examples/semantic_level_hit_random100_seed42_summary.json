@@ -1,0 +1,12 @@
+{
+  "input_csv":"outputs\/stage4_structured_retrieval_full_evidence_structured_prompt_llm.csv",
+  "sample_size":100,
+  "random_seed":42,
+  "definition":"top-level semantic label hit = top_{level}_label == true_object",
+  "low_hit_rate":0.51,
+  "mid_hit_rate":0.49,
+  "high_hit_rate":0.46,
+  "low_hit_count":51,
+  "mid_hit_count":49,
+  "high_hit_count":46
+}

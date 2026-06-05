@@ -49,6 +49,24 @@ def parse_args():
     parser.add_argument("--eegpt_backbone_out_dim", type=int, default=2048)
     parser.add_argument("--eeg_feature_dim", type=int, default=PathConfig.eeg_feature_dim)
     parser.add_argument("--output_dir", default=os.path.join(PathConfig.staged_output_dir, "stage2_eegpt_structured"))
+    parser.add_argument(
+        "--init_checkpoint_dir",
+        default="",
+        help=(
+            "可选的旧阶段二 checkpoint 目录。若其中包含 eeg_encoder/encoder.pt 和 multi_head.pt，"
+            "则用它初始化 EEG adapter/classifier 和多语义头。"
+        ),
+    )
+    parser.add_argument(
+        "--init_multi_head_only",
+        action="store_true",
+        help="配合 --init_checkpoint_dir 使用；只加载旧 multi_head.pt，不覆盖 --eeg_encoder_path。",
+    )
+    parser.add_argument(
+        "--freeze_eeg_encoder",
+        action="store_true",
+        help="冻结 EEG adapter/classifier，只训练 MultiHead 参数，用于保护已有分类准确率。",
+    )
     parser.add_argument("--num_epochs", type=int, default=30)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--learning_rate", type=float, default=2e-4)
@@ -78,6 +96,13 @@ def configure_paths(args):
     paths = PathConfig()
     paths.eeg_encoder_type = args.eeg_encoder_type
     paths.eeg_encoder_path = args.eeg_encoder_path
+    init_encoder_dir = os.path.join(args.init_checkpoint_dir, "eeg_encoder") if args.init_checkpoint_dir else ""
+    if (
+        args.init_checkpoint_dir
+        and not args.init_multi_head_only
+        and os.path.exists(os.path.join(init_encoder_dir, "encoder.pt"))
+    ):
+        paths.eeg_encoder_path = init_encoder_dir
     paths.eegpt_model_dir = args.eegpt_model_dir
     paths.eegpt_checkpoint_path = args.eegpt_checkpoint_path
     paths.eegpt_import = args.eegpt_import
@@ -160,11 +185,18 @@ def retrieval_top1(pred, target):
     return ((pred @ target.t()).argmax(dim=1) == labels).float().mean().item()
 
 
-def trainable_params(eeg_encoder, multi_head, encoder_type):
+def set_requires_grad(module, requires_grad):
+    """统一开关某个模块的梯度。"""
+
+    for parameter in module.parameters():
+        parameter.requires_grad = requires_grad
+
+
+def trainable_params(eeg_encoder, multi_head, encoder_type, freeze_eeg_encoder=False):
     """返回阶段二真正需要优化的参数。"""
 
     params = [parameter for parameter in multi_head.parameters() if parameter.requires_grad]
-    if encoder_type == "eegpt":
+    if encoder_type == "eegpt" and not freeze_eeg_encoder:
         params += eeg_encoder.trainable_parameters
     return [parameter for parameter in params if parameter.requires_grad]
 
@@ -242,6 +274,18 @@ def save_checkpoint(output_dir, eeg_encoder, multi_head, metadata, encoder_type)
         json.dump(metadata, f, ensure_ascii=False, indent=2)
 
 
+def load_initial_multi_head(multi_head, init_checkpoint_dir, device):
+    """从旧阶段二 checkpoint 初始化 MultiHead。"""
+
+    if not init_checkpoint_dir:
+        return False
+    checkpoint_path = os.path.join(init_checkpoint_dir, "multi_head.pt")
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"--init_checkpoint_dir does not contain multi_head.pt: {checkpoint_path}")
+    multi_head.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    return True
+
+
 def main():
     args = parse_args()
     paths = configure_paths(args)
@@ -260,11 +304,14 @@ def main():
 
     # 加载阶段一 EEG encoder。使用 EEGPT 时，backbone 保持冻结，adapter 继续可训练。
     eeg_encoder = load_eeg_encoder(paths, device)
+    if args.freeze_eeg_encoder:
+        set_requires_grad(eeg_encoder, False)
     multi_head = MultiHead(args.eeg_feature_dim, 512).to(device)
+    initialized_multi_head = load_initial_multi_head(multi_head, args.init_checkpoint_dir, device)
     if args.freeze_mid_head:
         for parameter in multi_head.head_mid.parameters():
             parameter.requires_grad = False
-    optim_params = trainable_params(eeg_encoder, multi_head, args.eeg_encoder_type)
+    optim_params = trainable_params(eeg_encoder, multi_head, args.eeg_encoder_type, args.freeze_eeg_encoder)
     optimizer = torch.optim.AdamW(optim_params, lr=args.learning_rate, weight_decay=args.weight_decay)
     cls_criterion = nn.CrossEntropyLoss()
     best_val = float("inf")
@@ -275,6 +322,8 @@ def main():
         if args.eeg_encoder_type == "eegpt":
             # 保持预训练 EEGPT backbone 为 eval 模式，避免训练 adapter 时改变 dropout/batch 行为。
             eeg_encoder.backbone.eval()
+        if args.freeze_eeg_encoder:
+            eeg_encoder.eval()
         multi_head.train()
         running = 0.0
         pbar = tqdm(train_loader, desc=f"Stage 2 structured epoch {epoch + 1}/{args.num_epochs}")
@@ -318,6 +367,11 @@ def main():
             "full_loss_weight": args.full_loss_weight,
             "semantic_loss_levels": args.semantic_loss_levels,
             "freeze_mid_head": args.freeze_mid_head,
+            "freeze_eeg_encoder": args.freeze_eeg_encoder,
+            "init_checkpoint_dir": args.init_checkpoint_dir,
+            "init_multi_head_only": args.init_multi_head_only,
+            "initialized_multi_head": initialized_multi_head,
+            "resolved_eeg_encoder_path": paths.eeg_encoder_path,
         }
         save_checkpoint(os.path.join(args.output_dir, "last"), eeg_encoder, multi_head, metadata, args.eeg_encoder_type)
         if val_metrics["loss"] < best_val:

@@ -1,0 +1,749 @@
+image_name,reference_caption,true_object,classifier_pred,classifier_correct,top_low_label,top_mid_label,top_high_label,top_low_score,top_mid_score,top_high_score,semantic_levels,decoupled_semantics,retrieval_label_hit_any,candidate_labels,candidate_label_hit,main_label,decision_reason,decision_scores,main_label_correct,token_f1,generated_caption,prompt
+n03452741_16744,The category is piano; it shows a man sits at a grand piano in a McDonald's restaurant.,piano,handbag,False,handbag,,handbag,0.28516125679016113,,0.3132753074169159,low|high,False,False,,,handbag,classifier_main_label,handbag:0.633|ball:0.345|butterfly:0.248|parachutes:0.130|piano:0.082,False,0.42424242424242425,The category is handbag; it shows a black bag with a pink and purple geometric design.,"Main semantic decision: handbag (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: handbag (0.31) - Scene and context for the handbag: a collage of three black bags with a pink and purple geometric design.
+- high: handbag (0.29) - Scene and context for the handbag: a red cooler bag with the words ""Property of Scotia Bank"" printed on it.
+- high: handbag (0.28) - Scene and context for the handbag: a burgundy Prada bag sits on a white surface.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is handbag; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n04069434_10318,The category is camera; it shows a Canon camera sits on a white table with a black strap.,camera,camera,True,camera,,camera,0.3603938817977905,,0.33732926845550537,low|high,False,True,,,camera,classifier_main_label,camera:1.149|tower:0.141|gun:0.077|dog:0.050|flower:0.040,True,0.4444444444444444,"The category is camera; it shows a black, wooden device in a collage of various Sony digital cameras.","Main semantic decision: camera (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: camera (0.36) - Visual attributes of the camera: dark, old, wooden.
+- low: camera (0.36) - Visual attributes of the camera: black, wooden.
+- low: camera (0.36) - Visual attributes of the camera: black, wooden.
+- high: camera (0.34) - Scene and context for the camera: a collage of six different Sony digital cameras, each with a different color, shape, and texture.
+- high: camera (0.34) - Scene and context for the camera: a black Sony camera sits on a black surface.
+- high: camera (0.33) - Scene and context for the camera: an old movie camera with a black and silver body and a large lens.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is camera; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03452741_2982,"The category is piano; it shows the room features a high-gloss wood piano with a bench, surrounded by other pianos of various colors and sizes.",piano,piano,True,piano,,piano,0.38252556324005127,,0.37397077679634094,low|high,False,True,,,piano,classifier_main_label,piano:1.188|ball:0.112|butterfly:0.067|parachutes:0.050|pool table:0.040,True,0.5128205128205129,The category is piano; it shows a grand piano with black and white keys.,"Main semantic decision: piano (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: piano (0.38) - Visual attributes of the piano: black, red, white, shiny.
+- low: piano (0.38) - Visual attributes of the piano: black, colorful.
+- low: piano (0.37) - Visual attributes of the piano: black, white.
+- high: piano (0.37) - Scene and context for the piano: a man in a black shirt stands in front of a grand piano.
+- high: piano (0.37) - Scene and context for the piano: a grand piano's interior, showing strings and hammers in various shades of brown.
+- high: piano (0.37) - Scene and context for the piano: a Yamaha piano with sheet music open to the first page.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is piano; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03180011_9576,The category is computer; it shows a silver and black computer tower sits on a black carpet.,computer,panda or pandas,False,panda or pandas,,panda or pandas,0.3588975667953491,,0.3492397964000702,low|high,False,False,,,panda or pandas,classifier_main_label,panda or pandas:0.914|monkey:0.294|brush:0.123|computer:0.069|cell phone:0.052,False,0.45714285714285713,"The category is panda or pandas; it shows a panda bear sitting on a tree branch, eating bamboo.","Main semantic decision: panda or pandas (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: panda or pandas (0.36) - Visual attributes of the panda or pandas: a panda bear sitting on a tree branch, eating bamboo.
+- high: panda or pandas (0.35) - Scene and context for the panda or pandas: a panda bear sitting on a tree branch, eating bamboo.
+- high: panda or pandas (0.33) - Scene and context for the panda or pandas: a panda bear sits on a rock, surrounded by bamboo and leaves.
+- high: panda or pandas (0.33) - Scene and context for the panda or pandas: a black and white panda bear sits on a rock, holding a piece of bamboo.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is panda or pandas; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03773504_6291,"The category is rocket; it shows a large missile is shown in a warehouse-like setting, with yellow and green coloring and a black tip.",rocket,bicycle,False,bicycle,,bicycle,0.38031134009361267,,0.3653077483177185,low|high,False,False,,,bicycle,classifier_main_label,bicycle:0.593|gloves:0.426|rocket:0.342|pumpkin:0.053|ironing machine:0.043,False,0.35555555555555557,"The category is bicycle; it shows a red bicycle parked on a sidewalk near a crosswalk, next to a tall building.","Main semantic decision: bicycle (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: bicycle (0.38) - Visual attributes of the bicycle: black, red.
+- low: bicycle (0.38) - Visual attributes of the bicycle: black, red.
+- low: bicycle (0.37) - Visual attributes of the bicycle: red.
+- high: bicycle (0.37) - Scene and context for the bicycle: a red bicycle is parked on a sidewalk near a crosswalk, next to a tall building.
+- high: bicycle (0.34) - Scene and context for the bicycle: a man and woman riding bikes on a dirt trail in the desert.
+- high: bicycle (0.32) - Scene and context for the bicycle: a man rides a bike down a dirt trail.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is bicycle; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03272562_4339,The category is train; it shows a train moves along the tracks in a city.,train,guitar,False,guitar,,guitar,0.337481826543808,,0.37515249848365784,low|high,False,False,,,guitar,classifier_main_label,guitar:0.894|watch or watches:0.259|train:0.209|computer:0.054|coffee maker:0.040,False,0.3888888888888889,"The category is guitar; it shows an electric guitar displayed on a stand, with a brown wooden body and white fretboard.","Main semantic decision: guitar (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: guitar (0.38) - Scene and context for the guitar: an electric guitar is displayed on a stand, with a brown wooden body and white fretboard.
+- high: guitar (0.37) - Scene and context for the guitar: a close-up of a red and white electric guitar, with its neck and fretboard in focus.
+- high: guitar (0.36) - Scene and context for the guitar: a close-up of a guitar neck with six strings, a wooden body, and metallic frets.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is guitar; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03452741_3088,"The category is piano; it shows a grand piano sits in a dark room, its black surface reflecting light.",piano,ball,False,ball,,ball,0.33046388626098633,,0.29872363805770874,low|high,False,False,,,ball,classifier_main_label,ball:1.153|piano:0.147|canoe or boat:0.067|parachutes:0.050|pumpkin:0.040,False,0.36363636363636365,The category is ball; it shows a white golf ball with MGC on it.,"Main semantic decision: ball (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: ball (0.30) - Scene and context for the ball: a white golf ball with MGC on it sits on a red surface.
+- high: ball (0.28) - Scene and context for the ball: a golf ball with a red lobster painted on it, sitting on a tan surface.
+- high: ball (0.28) - Scene and context for the ball: background.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is ball; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03297495_7249,"The category is coffee maker; it shows the La Marzocco Linea espresso machine is shown in a white and silver color scheme, with a clear, see-through body and silver buttons.",coffee maker,flower,False,flower,,flower,0.32715749740600586,,0.3448512852191925,low|high,False,False,,,flower,classifier_main_label,flower:1.091|coffee maker:0.169|mushroom:0.100|girl:0.055|train:0.041,False,0.326530612244898,"The category is flower; it shows a group of four white flowers with yellow centers, surrounded by green leaves.","Main semantic decision: flower (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: flower (0.34) - Scene and context for the flower: a group of four white flowers with yellow centers, surrounded by green leaves.
+- high: flower (0.33) - Scene and context for the flower: a white daisy with purple center sits in front of a green bush.
+- high: flower (0.33) - Scene and context for the flower: a group of white daisies with yellow centers are shown.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is flower; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03376595_108,The category is chair; it shows the wooden folding chair is empty and ready for use.,chair,pool table,False,pool table,,pool table,0.4249475598335266,,0.3806065022945404,low|high,False,False,,,pool table,classifier_main_label,pool table:1.151|chair:0.131|canoe or boat:0.081|pumpkin:0.051|horse:0.041,False,0.3043478260869565,"The category is pool table; it shows a man leaning over it, his arm resting on the rail, surrounded by a room with wood paneling and pictures on the wall.","Main semantic decision: pool table (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: pool table (0.42) - Visual attributes of the pool table: a man leans over a pool table, his arm resting on the rail.
+- low: pool table (0.41) - Visual attributes of the pool table: gray, green, wooden.
+- low: pool table (0.41) - Visual attributes of the pool table: a group of people playing pool in a room with wood paneling and pictures on the wall.
+- high: pool table (0.38) - Scene and context for the pool table: floor, table.
+- high: pool table (0.38) - Scene and context for the pool table: table.
+- high: pool table (0.38) - Scene and context for the pool table: table.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is pool table; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02992529_13746,The category is cell phone; it shows a man wearing glasses and a black shirt is talking on a cell phone.,cell phone,computer,False,computer,,camp or camping,0.35750633478164673,,0.27607595920562744,low|high,False,False,,,computer,classifier_main_label,computer:0.884|camp or camping:0.287|cell phone:0.126|gloves:0.083|bicycle:0.060,False,0.5263157894736842,The category is computer; it shows a laptop and a monitor side by side on a desk.,"Main semantic decision: computer (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: computer (0.36) - Visual attributes of the computer: a laptop computer and a computer monitor sit side by side on a desk.
+- high: computer (0.19) - Scene and context for the computer: a Vaio laptop displays a green square on the screen.
+- high: computer (0.19) - Scene and context for the computer: a computer monitor displays a fantasy game on its screen.
+- high: computer (0.17) - Scene and context for the computer: a Dell desktop computer with a monitor, keyboard, and mouse sits on a white surface.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is computer; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n04044716_17472,The category is tower; it shows a large white satellite dish sits on a concrete pad in a parking lot.,tower,camera,False,camera,,camera,0.32859861850738525,,0.31551969051361084,low|high,False,False,,,camera,classifier_main_label,camera:1.018|tower:0.278|gun:0.069|watch or watches:0.050|train:0.040,False,0.4571428571428572,The category is camera; it shows a black Sony camera sitting on a black surface.,"Main semantic decision: camera (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: camera (0.32) - Scene and context for the camera: a black Sony camera sits on a black surface.
+- high: camera (0.30) - Scene and context for the camera: an old movie camera with a black and silver body and a large lens.
+- high: camera (0.30) - Scene and context for the camera: an old camera with a black cord and a flash on top.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is camera; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03982430_13651,The category is pool table; it shows a pool table with a green felt surface sits on a red carpet.,pool table,handbag,False,handbag,,handbag,0.33537644147872925,,0.3089495301246643,low|high,False,False,,,handbag,classifier_main_label,handbag:1.136|pool table:0.142|pumpkin:0.087|chair:0.050|ironing machine:0.040,False,0.47619047619047616,"The category is handbag; it shows a black leather purse with a pink pocketbook inside, hanging on a rack in a store.","Main semantic decision: handbag (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: handbag (0.31) - Scene and context for the handbag: a black leather purse with a pink pocketbook inside, hanging on a rack in a store.
+- high: handbag (0.29) - Scene and context for the handbag: a collage of three black bags with a pink and purple geometric design.
+- high: handbag (0.29) - Scene and context for the handbag: a black nylon messenger bag with a buckle on the front and a shoulder strap.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is handbag; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03063599_2735,The category is coffee mug; it shows an orange travel mug with the letters WWS on it sits on a table.,coffee mug,car,False,horse,,car,0.31970280408859253,,0.3061090111732483,low|high,False,False,,,car,classifier_main_label,car:0.761|elephant:0.362|horse:0.142|coffee mug:0.081|monkey:0.058,False,0.35,The category is car; it shows a yellow Ford Mustang sitting in a parking lot with other classic cars.,"Main semantic decision: car (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: car (0.31) - Scene and context for the car: a yellow Ford Mustang sits in a parking lot with other classic cars.
+- high: car (0.28) - Scene and context for the car: an orange 2005 Chevrolet Corvette Convertible sits in a parking lot, surrounded by green shrubs.
+- high: car (0.26) - Scene and context for the car: a black Thunderbird convertible sits in a parking lot with other classic cars.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is car; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03877472_3847,The category is girl; it shows a little girl in red pajamas opens a wrapped present.,girl,girl,True,girl,,girl,0.295315146446228,,0.3027265965938568,low|high,False,True,,,girl,classifier_main_label,girl:1.054|camp or camping:0.228|watch or watches:0.075|train:0.055|computer:0.043,True,0.5714285714285714,The category is girl; it shows a child in pink heart pajamas standing in front of a Christmas tree.,"Main semantic decision: girl (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: girl (0.30) - Scene and context for the girl: a girl in pink heart pajamas stands in front of a Christmas tree.
+- high: girl (0.30) - Scene and context for the girl: a man in a pink and white fluffy pajama set stands in a luxurious bedroom.
+- high: girl (0.29) - Scene and context for the girl: a woman in pink pajamas stands in front of a closet.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is girl; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03888257_24025,The category is parachutes; it shows a person with a parachute and a flag is in the sky.,parachutes,pumpkin,False,parachutes,,parachutes,0.3128133714199066,,0.32809412479400635,low|high,False,True,,,pumpkin,classifier_main_label,pumpkin:0.799|parachutes:0.397|ball:0.127|handbag:0.085|ironing machine:0.049,False,0.5945945945945946,The category is pumpkin; it shows a glowing jack-o'-lantern with a carved smile and glowing eyes in the dark.,"Main semantic decision: pumpkin (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: pumpkin (0.29) - Scene and context for the pumpkin: the pumpkin is glowing in the dark, with a smiling face carved into it.
+- high: pumpkin (0.29) - Scene and context for the pumpkin: a pumpkin with a carved smile and glowing eyes, surrounded by darkness.
+- high: pumpkin (0.29) - Scene and context for the pumpkin: a pumpkin is carved with a glowing eye, surrounded by blackness.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is pumpkin; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03792782_15924,The category is bicycle; it shows a man in black jumps his mountain bike over a trail.,bicycle,car,False,rocket,,rocket,0.2823285758495331,,0.2642862796783447,low|high,False,False,,,car,classifier_main_label,car:0.788|bicycle:0.359|rocket:0.114|computer:0.082|elephant:0.068,False,0.4827586206896552,The category is car; it shows a vehicle moving along a road.,"Main semantic decision: car (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: car (0.19) - Scene and context for the car: road, sky.
+- high: car (0.19) - Scene and context for the car: road.
+- high: car (0.19) - Scene and context for the car: road.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is car; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02992529_39085,The category is cell phone; it shows a cup of coffee sits on a saucer next to a cell phone.,cell phone,gloves,False,gloves,,gloves,0.3332909345626831,,0.29987242817878723,low|high,False,False,,,gloves,classifier_main_label,gloves:0.971|bicycle:0.312|brush:0.074|panda or pandas:0.053|rocket:0.043,False,0.4242424242424242,The category is gloves; it shows a purple knitted mitten covering a wrist.,"Main semantic decision: gloves (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: gloves (0.30) - Scene and context for the gloves: a purple knitted mitten covers a person's wrist.
+- high: gloves (0.30) - Scene and context for the gloves: the colorful mittens are laid out on the concrete, showcasing their intricate design.
+- high: gloves (0.30) - Scene and context for the gloves: a pair of brown and blue mittens with loops on the top.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is gloves; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03792782_8799,The category is bicycle; it shows the image shows a collage of cyclists riding up a steep hill.,bicycle,bicycle,True,bicycle,,bicycle,0.342248797416687,,0.34272506833076477,low|high,False,True,,,bicycle,classifier_main_label,bicycle:0.904|gloves:0.267|rocket:0.195|camp or camping:0.051|ironing machine:0.040,True,0.5405405405405405,The category is bicycle; it shows a man and woman riding bikes on a dirt trail in the desert.,"Main semantic decision: bicycle (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: bicycle (0.34) - Scene and context for the bicycle: a man and woman riding bikes on a dirt trail in the desert.
+- high: bicycle (0.32) - Scene and context for the bicycle: a man rides a bike down a dirt trail.
+- high: bicycle (0.31) - Scene and context for the bicycle: a red bicycle is parked on a sidewalk near a crosswalk, next to a tall building.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is bicycle; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02504458_480,"The category is elephant; it shows an elephant stands in front of a rock, surrounded by grass and a brick wall.",elephant,elephant,True,elephant,,elephant,0.39232343435287476,,0.3788103759288788,low|high,False,True,,,elephant,classifier_main_label,elephant:0.935|panda or pandas:0.354|monkey:0.073|gloves:0.052|airplane:0.042,True,0.6341463414634146,"The category is elephant; it shows two elephants standing in a field of tall grass and brush, surrounded by trees.","Main semantic decision: elephant (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: elephant (0.39) - Visual attributes of the elephant: two elephants stand in a field of tall grass and brush, surrounded by trees.
+- low: elephant (0.38) - Visual attributes of the elephant: an adult elephant and a baby elephant stand in a grassy field with trees in the background.
+- low: elephant (0.37) - Visual attributes of the elephant: two elephants in the water, surrounded by greenery.
+- high: elephant (0.38) - Scene and context for the elephant: elephants of various sizes walking in a grassy area.
+- high: elephant (0.36) - Scene and context for the elephant: an elephant with a long trunk and tusks, standing next to a fallen tree.
+- high: elephant (0.35) - Scene and context for the elephant: an elephant stands in the dirt, surrounded by trees and rocks.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is elephant; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03877472_23771,The category is girl; it shows three women wearing red and pink pajamas sitting on a tan couch.,girl,camp or camping,False,camp or camping,,girl,0.32202082872390747,,0.34513595700263977,low|high,False,True,,,camp or camping,classifier_main_label,camp or camping:1.015|girl:0.228|rocket:0.104|train:0.058|coffee maker:0.044,False,0.43243243243243246,The category is camping; it shows a woman sitting in a grey tent with her brown and white dog.,"Main semantic decision: camp or camping (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: camp or camping (0.31) - Scene and context for the camp or camping: a woman sits in a grey tent with her brown and white dog.
+- high: camp or camping (0.30) - Scene and context for the camp or camping: a woman kneels next to a tent pitched on rocky ground.
+- high: camp or camping (0.28) - Scene and context for the camp or camping: a man and woman are kneeling in front of a blue tent.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is camp or camping; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n04069434_3119,The category is camera; it shows an old Rolleicord camera sits on a wooden table.,camera,camera,True,camera,,camera,0.31666743755340576,,0.3090713620185852,low|high,False,True,,,camera,classifier_main_label,camera:1.009|tower:0.227|gun:0.128|watch or watches:0.051|train:0.040,True,0.5714285714285715,The category is camera; it shows an old movie camera with a black and silver body and a large lens.,"Main semantic decision: camera (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: camera (0.31) - Scene and context for the camera: an old movie camera with a black and silver body and a large lens.
+- high: camera (0.30) - Scene and context for the camera: a black camera with the word ""canon"" on it.
+- high: camera (0.29) - Scene and context for the camera: a black Zenit camera with a lens lying beside it.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is camera; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02607072_1617,The category is clownfish or fish; it shows the pink fish with a white stripe swims in the green sea anemone.,clownfish or fish,airplane,False,airplane,,airplane,0.3315151631832123,,0.3193286657333374,low|high,False,False,,,airplane,classifier_main_label,airplane:0.744|clownfish or fish:0.533|monkey:0.079|brush:0.058|horse:0.041,False,0.4324324324324324,The category is airplane; it shows a white airplane with red writing taxiing on a runway.,"Main semantic decision: airplane (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: airplane (0.32) - Scene and context for the airplane: an airport scene with three airplanes on the tarmac, one blue and two red.
+- high: airplane (0.32) - Scene and context for the airplane: a white airplane with red writing taxis on a runway.
+- high: airplane (0.31) - Scene and context for the airplane: a large white airplane taxis on the runway.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is airplane; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03180011_16171,The category is computer; it shows a desktop computer with a silver keyboard and mouse sits on a white surface.,computer,computer,True,cell phone,,cell phone,0.3302280902862549,,0.3219238221645355,low|high,False,False,,,computer,classifier_main_label,computer:0.836|cell phone:0.427|watch or watches:0.100|monkey:0.054|train:0.040,True,0.4571428571428572,The category is computer; it shows a man sitting in front of a blank screen.,"Main semantic decision: computer (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: computer (0.29) - Scene and context for the computer: a black television monitor displays the time as 11:15, with a remote control resting beside it.
+- high: computer (0.28) - Scene and context for the computer: a man in a blue shirt sits in front of a computer with a blank screen.
+- high: computer (0.28) - Scene and context for the computer: a Vaio laptop displays a green square on the screen.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is computer; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03063599_552,"The category is coffee mug; it shows small wonder, a terra cotta vase sits on a concrete ledge.",coffee mug,cell phone,False,cell phone,,cell phone,0.42502155900001526,,0.4336395263671875,low|high,False,False,,,cell phone,classifier_main_label,cell phone:1.165|computer:0.135|monkey:0.067|watch or watches:0.050|panda or pandas:0.040,False,0.4,The category is cell phone; it shows a black or blue device.,"Main semantic decision: cell phone (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: cell phone (0.43) - Visual attributes of the cell phone: black, blue.
+- low: cell phone (0.42) - Visual attributes of the cell phone: black, blue, white.
+- low: cell phone (0.42) - Visual attributes of the cell phone: blue, white.
+- high: cell phone (0.43) - Scene and context for the cell phone: a man wearing glasses and a black shirt is talking on a cell phone.
+- high: cell phone (0.41) - Scene and context for the cell phone: a woman hugging a man from behind, looking at a silver cellphone.
+- high: cell phone (0.41) - Scene and context for the cell phone: an older man wearing glasses and a black jacket is working on a cell phone.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is cell phone; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03376595_11049,The category is chair; it shows a man in a brown shirt and jeans is doing a handstand on a folding chair.,chair,chair,True,chair,,chair,0.3995625972747803,,0.3901086747646332,low|high,False,True,,,chair,classifier_main_label,chair:1.139|canoe or boat:0.151|pool table:0.072|piano:0.053|elephant:0.041,True,0.5365853658536586,The category is chair; it shows a wooden folding chair with a green cushion sitting on a white surface.,"Main semantic decision: chair (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: chair (0.40) - Visual attributes of the chair: green, white, wooden.
+- low: chair (0.40) - Visual attributes of the chair: black, white, wooden.
+- low: chair (0.40) - Visual attributes of the chair: black, white, wooden.
+- high: chair (0.39) - Scene and context for the chair: a Notre Dame folding chair with a white cushion, black frame, and logo of a leprechaun fighting an Irish.
+- high: chair (0.39) - Scene and context for the chair: a wooden folding chair with a green cushion sits on a white surface.
+- high: chair (0.37) - Scene and context for the chair: a green lawn chair sits on a patio, next to a flower pot.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is chair; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03775071_44,The category is gloves; it shows a colorful hat and mittens are attached to a tree.,gloves,gloves,True,gloves,,gloves,0.40119126439094543,,0.4022868871688843,low|high,False,True,,,gloves,classifier_main_label,gloves:0.820|butterfly:0.364|chair:0.151|handbag:0.075|piano:0.042,True,0.5161290322580646,The category is gloves; it shows blue and purple striped gloves on a white surface.,"Main semantic decision: gloves (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: gloves (0.40) - Visual attributes of the gloves: blue, purple, striped, white.
+- low: gloves (0.39) - Visual attributes of the gloves: blue, purple, white.
+- low: gloves (0.39) - Visual attributes of the gloves: blue, striped, white.
+- high: gloves (0.40) - Scene and context for the gloves: a pair of purple and blue mittens sits on a white surface.
+- high: gloves (0.38) - Scene and context for the gloves: a green and white knitted mitten sits on a white counter.
+- high: gloves (0.37) - Scene and context for the gloves: two mittens decorated with blue and white frosting sit on a white cloth with gold stars.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is gloves; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n04086273_26142,The category is gun; it shows a black revolver with a wooden grip sits on a wooden table.,gun,flower,False,gun,,flower,0.28531861305236816,,0.2861407399177551,low|high,False,True,,,flower,classifier_main_label,flower:0.989|gun:0.228|mushroom:0.107|pizza:0.070|camera:0.058,False,0.43750000000000006,The category is flower; it shows a group of white daisies with yellow centers.,"Main semantic decision: flower (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: flower (0.29) - Scene and context for the flower: a group of white daisies with yellow centers are shown.
+- high: flower (0.28) - Scene and context for the flower: a group of four white flowers with yellow centers, surrounded by green leaves.
+- high: flower (0.28) - Scene and context for the flower: a close-up of a flower with white petals and green stems surrounded by daisies.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is flower; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03180011_9698,"The category is computer; it shows a desk with three computers, a keyboard, a mouse, and a phone.",computer,computer,True,elephant,,computer,0.2970768213272095,,0.2933887243270874,low|high,False,True,,,computer,classifier_main_label,computer:1.191|watch or watches:0.105|coffee maker:0.070|cell phone:0.050|train:0.040,True,0.5853658536585366,"The category is computer; it shows a black and silver desktop computer sitting on a white surface with a monitor, keyboard, and mouse.","Main semantic decision: computer (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: computer (0.29) - Scene and context for the computer: a monitor displays the words ""this"" and ""next"" on a computer screen.
+- high: computer (0.28) - Scene and context for the computer: a black and silver desktop computer sits on a white surface.
+- high: computer (0.27) - Scene and context for the computer: a Dell desktop computer with a monitor, keyboard, and mouse sits on a white surface.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is computer; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03445777_2548,"The category is ball; it shows a white golf ball sits on the green, next to a hole.",ball,ball,True,ball,,ball,0.34536194801330566,,0.3327886760234833,low|high,False,True,,,ball,classifier_main_label,ball:1.163|parachutes:0.133|piano:0.069|pumpkin:0.051|handbag:0.040,True,0.6486486486486486,The category is ball; it shows a white golf ball with MGC on it sitting on a red surface.,"Main semantic decision: ball (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: ball (0.33) - Scene and context for the ball: a white golf ball with MGC on it sits on a red surface.
+- high: ball (0.31) - Scene and context for the ball: a pile of white golf balls with red writing on them.
+- high: ball (0.31) - Scene and context for the ball: a person holds five golf balls in their hand.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is ball; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03982430_4411,The category is pool table; it shows a pool table sits in a room with white walls and a red top.,pool table,pool table,True,pool table,,pool table,0.4274519979953766,,0.41188013553619385,low|high,False,True,,,pool table,classifier_main_label,pool table:1.193|canoe or boat:0.105|chair:0.068|horse:0.050|elephant:0.040,True,0.4545454545454545,"The category is pool table; it shows a man leaning over it, his arm resting on the rail in a log cabin room.","Main semantic decision: pool table (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: pool table (0.43) - Visual attributes of the pool table: a man leans over a pool table, his arm resting on the rail.
+- low: pool table (0.41) - Visual attributes of the pool table: gray, green, wooden.
+- low: pool table (0.41) - Visual attributes of the pool table: a group of men playing pool in a log cabin room.
+- high: pool table (0.41) - Scene and context for the pool table: floor, table.
+- high: pool table (0.41) - Scene and context for the pool table: floor, room, table.
+- high: pool table (0.41) - Scene and context for the pool table: floor, room, table.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is pool table; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n07753592_1198,The category is fruits and vegetables; it shows a red apple sits on top of a pile of bananas.,fruits and vegetables,shoes,False,fruits and vegetables,,fruits and vegetables,0.3062424659729004,,0.3093233108520508,low|high,False,True,,,shoes,classifier_main_label,shoes:0.689|fruits and vegetables:0.505|pizza:0.172|camera:0.050|flower:0.040,False,0.46511627906976744,The category is shoes; it shows a pair of grey and blue running shoes with yellow and black soles sitting on a cardboard box.,"Main semantic decision: shoes (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: shoes (0.29) - Scene and context for the shoes: a pair of grey and blue running shoes with yellow and black soles sits on a cardboard box.
+- high: shoes (0.29) - Scene and context for the shoes: a pair of white and yellow running shoes sits on a cardboard box.
+- high: shoes (0.28) - Scene and context for the shoes: the shoe on the left is red, green, and yellow, with a Nike swoosh.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is shoes; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03272010_13834,The category is guitar; it shows three ceramic guitars of varying colors and sizes sit on pedestals against a white curtain.,guitar,watch or watches,False,train,,train,0.3027801513671875,,0.3359830379486084,low|high,False,False,,,watch or watches,classifier_main_label,watch or watches:0.548|train:0.407|cell phone:0.271|elephant:0.108|guitar:0.075,False,0.31578947368421056,The category is watch or watches; it shows a green digital watch displaying the time as 11:13.,"Main semantic decision: watch or watches (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: watch or watches (0.22) - Scene and context for the watch or watches: a square, green digital watch displays the time as 11:13.
+- high: watch or watches (0.21) - Scene and context for the watch or watches: a blue and white digital watch displays the time as 16:48.
+- high: watch or watches (0.21) - Scene and context for the watch or watches: a blue and silver digital watch displays the time as 10:10.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is watch or watches; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02906734_21829,The category is brush; it shows a blue brush with red flowers sits on a rock near a pile of trash.,brush,brush,True,brush,,brush,0.3227997124195099,,0.3212074637413025,low|high,False,True,,,brush,classifier_main_label,brush:1.072|clownfish or fish:0.145|elephant:0.094|butterfly:0.076|airplane:0.058,True,0.5,The category is brush; it shows a broom leaning against a fence outside a building.,"Main semantic decision: brush (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: brush (0.32) - Scene and context for the brush: a broom leaning against a fence outside a building.
+- high: brush (0.29) - Scene and context for the brush: a red stick leans against a gray rock.
+- high: brush (0.28) - Scene and context for the brush: a broom sits on the ground outside a building.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is brush; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n07753592_14206,"The category is fruits and vegetables; it shows a large bunch of green bananas hang from a tree, surrounded by large green leaves.",fruits and vegetables,fruits and vegetables,True,fruits and vegetables,,fruits and vegetables,0.3461192846298218,,0.3742755353450775,low|high,False,True,,,fruits and vegetables,classifier_main_label,fruits and vegetables:0.868|shoes:0.431|pizza:0.067|butterfly:0.050|horse:0.040,True,0.5263157894736841,The category is fruits and vegetables; it shows a ripe yellow banana on a counter.,"Main semantic decision: fruits and vegetables (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: fruits and vegetables (0.37) - Scene and context for the fruits and vegetables: the bananas are yellow and green, with brown stems attached.
+- high: fruits and vegetables (0.37) - Scene and context for the fruits and vegetables: a fruit stand displays bananas, oranges, and avocados.
+- high: fruits and vegetables (0.36) - Scene and context for the fruits and vegetables: a banana sits on a counter, yellow and ripe.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is fruits and vegetables; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02992529_42996,The category is cell phone; it shows a shirtless man smoking a cigarette checks his phone in a crowded street.,cell phone,cell phone,True,cell phone,,cell phone,0.35607248544692993,,0.3210587501525879,low|high,False,True,,,cell phone,classifier_main_label,cell phone:0.700|bicycle:0.497|computer:0.117|monkey:0.067|coffee mug:0.050,True,0.47826086956521735,The category is cell phone; it shows a man with a hat and glasses talking on a device with a qwerty keyboard and a large screen.,"Main semantic decision: cell phone (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: cell phone (0.36) - Visual attributes of the cell phone: a man with a hat and glasses is talking on his cell phone.
+- high: cell phone (0.32) - Scene and context for the cell phone: the LG enV2 cell phone is shown in red and black, with a qwerty keyboard and a large screen.
+- high: cell phone (0.31) - Scene and context for the cell phone: a man wearing glasses and a black shirt is talking on a cell phone.
+- high: cell phone (0.31) - Scene and context for the cell phone: an older man wearing glasses and a black jacket is working on a cell phone.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is cell phone; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03877472_10554,The category is girl; it shows a woman and two children sit on a red bench in front of a dental office.,girl,girl,True,girl,,girl,0.3109305500984192,,0.39881595969200134,low|high,False,True,,,girl,classifier_main_label,girl:1.068|camp or camping:0.210|train:0.072|rocket:0.054|gun:0.043,True,0.46153846153846156,The category is girl; it shows a young girl standing in a doorway with her arms crossed.,"Main semantic decision: girl (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: girl (0.40) - Scene and context for the girl: a young girl in a white pajama top stands in a doorway with her arms crossed.
+- high: girl (0.39) - Scene and context for the girl: a girl in pink heart pajamas stands in front of a Christmas tree.
+- high: girl (0.38) - Scene and context for the girl: a boy holds up a pair of red penguin pajamas in front of a Christmas tree.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is girl; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03709823_17750,The category is handbag; it shows a brown leather tote bag with silver hardware sits on a white surface.,handbag,pumpkin,False,handbag,,handbag,0.37459856271743774,,0.37472912669181824,low|high,False,True,,,pumpkin,classifier_main_label,pumpkin:0.725|handbag:0.574|ironing machine:0.067|ball:0.050|chair:0.040,False,0.4186046511627907,"The category is pumpkin; it shows two carved pumpkins on a stove, one with a frowning face and the other with a scary expression.","Main semantic decision: pumpkin (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: pumpkin (0.34) - Scene and context for the pumpkin: two carved pumpkins sit on a stove, one with a frown and the other with a scary face.
+- high: pumpkin (0.34) - Scene and context for the pumpkin: an orange pumpkin sits on a ledge, carved with a skeleton holding a knife.
+- high: pumpkin (0.33) - Scene and context for the pumpkin: a pumpkin with a detailed carving of a face and a bird on it.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is pumpkin; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03376595_10579,"The category is chair; it shows a wooden folding chair sits in the grass, its slatted back and arms made of teak wood.",chair,chair,True,chair,,chair,0.4007919430732727,,0.37014731764793396,low|high,False,True,,,chair,classifier_main_label,chair:1.182|pool table:0.109|piano:0.070|canoe or boat:0.053|gloves:0.041,True,0.4571428571428571,"The category is chair; it shows a blue, striped and white chair.","Main semantic decision: chair (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: chair (0.40) - Visual attributes of the chair: blue, striped, white.
+- low: chair (0.40) - Visual attributes of the chair: blue, striped, white.
+- low: chair (0.38) - Visual attributes of the chair: blue, white, large.
+- high: chair (0.37) - Scene and context for the chair: a wooden folding chair with a green cushion sits on a white surface.
+- high: chair (0.35) - Scene and context for the chair: a green lawn chair sits on a patio, next to a flower pot.
+- high: chair (0.34) - Scene and context for the chair: rows of folding chairs in a brick courtyard, some stacked, some not.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is chair; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02281787_2216,The category is butterfly; it shows a white butterfly with black spots sits on a rock.,butterfly,pool table,False,pool table,,pool table,0.37986093759536743,,0.3430359959602356,low|high,False,False,,,pool table,classifier_main_label,pool table:0.819|canoe or boat:0.435|chair:0.093|butterfly:0.059|cat:0.045,False,0.39024390243902435,"The category is pool table; it shows a group of men playing pool in a log cabin room, with a gray, green, and wooden surface.","Main semantic decision: pool table (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: pool table (0.38) - Visual attributes of the pool table: a group of men playing pool in a log cabin room.
+- low: pool table (0.38) - Visual attributes of the pool table: gray, green, wooden.
+- low: pool table (0.38) - Visual attributes of the pool table: a chocolate cake decorated with a pool table scene, including balls and a cue stick.
+- high: pool table (0.34) - Scene and context for the pool table: floor, room, table.
+- high: pool table (0.34) - Scene and context for the pool table: floor, room, table.
+- high: pool table (0.34) - Scene and context for the pool table: floor, table.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is pool table; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03100240_20935,"The category is car; it shows a silver car sits on display in a white showroom, surrounded by white curtains.",car,car,True,car,,car,0.35566169023513794,,0.37061572074890137,low|high,False,True,,,car,classifier_main_label,car:1.123|coffee mug:0.164|monkey:0.074|cat:0.053|cell phone:0.041,True,0.5405405405405405,The category is car; it shows a silver vehicle parked among classic cars in a parking lot.,"Main semantic decision: car (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: car (0.36) - Visual attributes of the car: silver.
+- low: car (0.36) - Visual attributes of the car: silver.
+- low: car (0.36) - Visual attributes of the car: silver.
+- high: car (0.37) - Scene and context for the car: a black Thunderbird convertible sits in a parking lot with other classic cars.
+- high: car (0.36) - Scene and context for the car: a man drives a silver Mini Cooper convertible with the top down, wearing sunglasses.
+- high: car (0.35) - Scene and context for the car: a woman in a silver convertible waves from the passenger seat.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is car; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03180011_7359,"The category is computer; it shows a computer monitor is on a desk, displaying a webpage.",computer,train,False,train,,train,0.370455801486969,,0.35745885968208313,low|high,False,False,,,train,classifier_main_label,train:0.973|elephant:0.183|guitar:0.116|bicycle:0.097|brush:0.063,False,0.39999999999999997,"The category is train; it shows a red and yellow train sitting on the tracks, surrounded by green trees.","Main semantic decision: train (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: train (0.37) - Visual attributes of the train: red, yellow.
+- low: train (0.37) - Visual attributes of the train: green, yellow.
+- low: train (0.37) - Visual attributes of the train: blue, yellow.
+- high: train (0.36) - Scene and context for the train: a black and red train engine sits on the tracks, surrounded by green trees.
+- high: train (0.34) - Scene and context for the train: an old, rusty train sits on the tracks in a grassy area.
+- high: train (0.33) - Scene and context for the train: an old train engine is painted black and red and sits behind a chain link fence.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is train; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n11939491_10024,"The category is flower; it shows a single daisy with white petals and a black center, against a black background.",flower,gun,False,gun,,gun,0.347356379032135,,0.3314785361289978,low|high,False,False,,,gun,classifier_main_label,gun:1.004|tower:0.215|camera:0.111|flower:0.085|mushroom:0.041,False,0.46511627906976744,"The category is gun; it shows a revolver with wooden grips and black metal, lying on a blue cloth with several bullet shells.","Main semantic decision: gun (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: gun (0.33) - Scene and context for the gun: a revolver gun with wooden grips and black metal, lying on a blue cloth with several bullet shells.
+- high: gun (0.32) - Scene and context for the gun: a black revolver gun with wooden grips sits on a leather case, surrounded by several bullet cartridges of different sizes and shapes.
+- high: gun (0.32) - Scene and context for the gun: the revolver is made of metal and has a wooden handle.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is gun; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03792782_12815,"The category is bicycle; it shows the cyclists are lined up at the starting line, wearing helmets and numbers on their bikes.",bicycle,bicycle,True,bicycle,,bicycle,0.3219106197357178,,0.3286418318748474,low|high,False,True,,,bicycle,classifier_main_label,bicycle:0.986|rocket:0.311|gloves:0.069|camp or camping:0.051|canoe or boat:0.040,True,0.888888888888889,"The category is bicycle; it shows a group of cyclists lined up at the starting line, wearing helmets and numbers on their bikes.","Main semantic decision: bicycle (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: bicycle (0.33) - Scene and context for the bicycle: the cyclists are lined up at the starting line, wearing helmets and numbers on their bikes.
+- high: bicycle (0.31) - Scene and context for the bicycle: a red bicycle is parked on a sidewalk near a crosswalk, next to a tall building.
+- high: bicycle (0.31) - Scene and context for the bicycle: a red bicycle is parked next to a bunch of yellow flowers.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is bicycle; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n07753592_11911,"The category is fruits and vegetables; it shows a group of people stand around a fruit stand, with bananas on a cart and a sign in Arabic behind them.",fruits and vegetables,fruits and vegetables,True,fruits and vegetables,,fruits and vegetables,0.33627188205718994,,0.35293692350387573,low|high,False,True,,,fruits and vegetables,classifier_main_label,fruits and vegetables:0.932|shoes:0.323|pizza:0.112|flower:0.050|camera:0.040,True,0.5333333333333333,"The category is fruits and vegetables; it shows a fruit stand displaying bananas, oranges, and avocados.","Main semantic decision: fruits and vegetables (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: fruits and vegetables (0.35) - Scene and context for the fruits and vegetables: a fruit stand displays bananas, oranges, and avocados.
+- high: fruits and vegetables (0.34) - Scene and context for the fruits and vegetables: a bowl of fruit containing four bananas, three oranges, and one apple.
+- high: fruits and vegetables (0.34) - Scene and context for the fruits and vegetables: a fruit display with bananas, pineapples, watermelon, and coconuts.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is fruits and vegetables; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02607072_2525,The category is clownfish or fish; it shows a red and white fish is swimming in a sea anemone.,clownfish or fish,airplane,False,airplane,,airplane,0.36939895153045654,,0.3912349045276642,low|high,False,False,,,airplane,classifier_main_label,airplane:1.041|clownfish or fish:0.247|brush:0.078|monkey:0.050|dog:0.040,False,0.3243243243243243,"The category is airplane; it shows a Canadian North plane sitting on the tarmac, surrounded by service vehicles.","Main semantic decision: airplane (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: airplane (0.37) - Visual attributes of the airplane: an Air Canada plane sits on the tarmac, surrounded by cargo and service vehicles.
+- low: airplane (0.37) - Visual attributes of the airplane: a Canadian North airplane sits on the tarmac, surrounded by service vehicles.
+- low: airplane (0.37) - Visual attributes of the airplane: blue, red.
+- high: airplane (0.39) - Scene and context for the airplane: a blue and white KLM jet taxis on the runway at an airport.
+- high: airplane (0.39) - Scene and context for the airplane: an airport scene with three airplanes on the tarmac, one blue and two red.
+- high: airplane (0.38) - Scene and context for the airplane: a blue Alaska Airlines jet taxis on the tarmac.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is airplane; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n07873807_2421,The category is pizza; it shows a man stands behind a counter filled with pizzas in a restaurant.,pizza,fruits and vegetables,False,fruits and vegetables,,fruits and vegetables,0.3393183648586273,,0.345584511756897,low|high,False,False,,,fruits and vegetables,classifier_main_label,fruits and vegetables:1.071|pizza:0.182|shoes:0.113|flower:0.050|camera:0.040,False,0.39999999999999997,"The category is fruits and vegetables; it shows a fruit display with bananas, pineapples, watermelon, and coconuts.","Main semantic decision: fruits and vegetables (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: fruits and vegetables (0.35) - Scene and context for the fruits and vegetables: a fruit display with bananas, pineapples, watermelon, and coconuts.
+- high: fruits and vegetables (0.34) - Scene and context for the fruits and vegetables: a fruit stand displays bananas, oranges, and avocados.
+- high: fruits and vegetables (0.32) - Scene and context for the fruits and vegetables: a fruit stand with bananas, apples, and oranges on display.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is fruits and vegetables; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03452741_1177,The category is piano; it shows a small brown piano sits on a white background.,piano,piano,True,piano,,piano,0.3218173384666443,,0.33389633893966675,low|high,False,True,,,piano,classifier_main_label,piano:0.741|ball:0.558|parachutes:0.067|butterfly:0.050|pool table:0.040,True,0.5333333333333333,The category is piano; it shows a man standing in front of a grand piano.,"Main semantic decision: piano (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: piano (0.33) - Scene and context for the piano: a man in a black shirt stands in front of a grand piano.
+- high: piano (0.32) - Scene and context for the piano: a young girl in a black dress stands next to a black piano.
+- high: piano (0.31) - Scene and context for the piano: a Yamaha piano with sheet music open to the first page.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is piano; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n02992529_35743,The category is cell phone; it shows the cell phone screen displays a text message with the time set at 16:25.,cell phone,cell phone,True,cell phone,,cell phone,0.3909485638141632,,0.3838895559310913,low|high,False,True,,,cell phone,classifier_main_label,cell phone:1.189|computer:0.110|watch or watches:0.067|monkey:0.050|panda or pandas:0.040,True,0.45,The category is cell phone; it shows a black or blue device being held by a man with glasses.,"Main semantic decision: cell phone (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- low: cell phone (0.39) - Visual attributes of the cell phone: blue, red.
+- low: cell phone (0.39) - Visual attributes of the cell phone: black, blue.
+- low: cell phone (0.38) - Visual attributes of the cell phone: a man with a hat and glasses is talking on his cell phone.
+- high: cell phone (0.38) - Scene and context for the cell phone: a man wearing glasses and a black shirt is talking on a cell phone.
+- high: cell phone (0.36) - Scene and context for the cell phone: an older man wearing glasses and a black jacket is working on a cell phone.
+- high: cell phone (0.36) - Scene and context for the cell phone: a man with a hat and glasses is talking on his cell phone.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is cell phone; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03063599_858,"The category is coffee mug; it shows three coffee mugs in yellow, blue, and white with a logo for Coffee Matters.",coffee mug,coffee mug,True,coffee mug,,coffee mug,0.2779422402381897,,0.35307884216308594,low|high,False,True,,,coffee mug,classifier_main_label,coffee mug:0.686|car:0.365|elephant:0.235|cell phone:0.124|rocket:0.043,True,0.5555555555555556,The category is coffee mug; it shows a white mug with the Libertarian Party logo.,"Main semantic decision: coffee mug (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: coffee mug (0.35) - Scene and context for the coffee mug: the mug is white with the Libertarian Party logo printed in yellow, blue, and purple.
+- high: coffee mug (0.32) - Scene and context for the coffee mug: the navy blue coffee mug has a trident symbol on it, with a white and gold seal that reads ""United States Naval War College Coat of Arms"".
+- high: coffee mug (0.32) - Scene and context for the coffee mug: a white coffee mug with a black logo for Meeting Grounds, a coffee shop in St Cloud, MN.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is coffee mug; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."
+n03709823_7681,The category is handbag; it shows a black leather tote bag is displayed on a white sheet.,handbag,handbag,True,pumpkin,,pumpkin,0.3595487177371979,,0.34633493423461914,low|high,False,False,,,handbag,classifier_main_label,handbag:0.998|pumpkin:0.284|ironing machine:0.078|ball:0.056|canoe or boat:0.040,True,0.42857142857142855,The category is handbag; it shows an orange purse hanging outside.,"Main semantic decision: handbag (classifier_main_label).
+
+Reliable semantic cues retrieved from EEG:
+- high: handbag (0.32) - Scene and context for the handbag: an orange purse is hanging on a stand outside.
+- high: handbag (0.29) - Scene and context for the handbag: a burgundy Prada bag sits on a white surface.
+- high: handbag (0.28) - Scene and context for the handbag: a brown leather tote bag with silver hardware sits on a white surface.
+
+Uncertain cues, do not rely on them unless necessary:
+- none
+
+Instruction:
+Generate exactly one English sentence in this exact format:
+The category is handbag; it shows <a concise visual description>.
+Use the decided category as the main object and do not replace it with another object. After 'it shows', describe the main object, action or pose, visual attributes, and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. For low/high cues, use only their described attributes or scenes, not their source labels."

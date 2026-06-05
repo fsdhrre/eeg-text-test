@@ -1,18 +1,3 @@
-"""阶段四：根据 EEG 检索语义锚点，并可选地调用 LLM 生成 caption。
-
-这是最终 retrieval-based pipeline 的推理核心脚本：
-
-1. 加载阶段二训练好的 EEG encoder 和 low / mid / high 三个语义头。
-2. 为每个测试 EEG 样本预测三层语义 embedding。
-3. 从结构化语义数据库中检索 top-k low / mid / high 语义锚点。
-4. 可选地聚合 evidence，决策主物体类别。
-5. 构造包含 reliable cues 和 uncertain cues 的 prompt。
-6. 让冻结的 LLM 组合生成一句简短 caption。
-
-这个脚本也用于消融实验。例如 ``--semantic_levels mid high`` 表示去掉 low 分支，
-``--skip_llm`` 表示只评估检索/evidence，不加载 LLM 生成文本。
-"""
-
 import argparse
 import csv
 import os
@@ -39,13 +24,13 @@ EEGPT_KWARGS = '{"img_size":[58,1024],"patch_size":64,"patch_stride":64,"embed_n
 
 
 def parse_args():
-    """定义 checkpoint 路径、检索设置、prompt 风格以及消融开关。"""
-
     parser = argparse.ArgumentParser(description="Stage 4 retrieval: retrieve semantic anchors and let LLM compose a caption.")
     parser.add_argument("--checkpoint_dir", default=os.path.join(PathConfig.staged_output_dir, "stage2_eegpt_retrieval", "best"))
     parser.add_argument("--semantic_db_path", default=os.path.join(PathConfig.staged_output_dir, "semantic_db_train.pt"))
     parser.add_argument("--output_csv", default=os.path.join(PathConfig.staged_output_dir, "stage4_retrieval_generations.csv"))
     parser.add_argument("--caption_map_path", default=os.path.join(PathConfig.staged_output_dir, "qwen_structured_captions_v3.json"))
+    parser.add_argument("--llm_path", default=PathConfig.llm_path, help="Local LLM path used for caption generation.")
+    parser.add_argument("--llm_trust_remote_code", action="store_true", help="Pass trust_remote_code=True when loading tokenizer/model.")
     parser.add_argument("--eeg_encoder_type", choices=["channelnet", "eegpt"], default="eegpt")
     parser.add_argument("--eegpt_model_dir", default="external/EEGPT/downstream")
     parser.add_argument("--eegpt_checkpoint_path", default="external/EEGPT/checkpoint/eegpt_mcae_58chs_4s_large4E.ckpt")
@@ -63,6 +48,22 @@ def parse_args():
         default=["low", "mid", "high"],
         help="Semantic levels used for retrieval/evidence. Use this for ablations, e.g. --semantic_levels mid high.",
     )
+    parser.add_argument(
+        "--decoupled_semantics",
+        action="store_true",
+        help=(
+            "Use this when low/high targets no longer contain object labels. "
+            "The main category then comes from the classifier, while low/high are exposed only as attribute/context cues."
+        ),
+    )
+    parser.add_argument(
+        "--classifier_only",
+        action="store_true",
+        help=(
+            "Ablation mode: do not retrieve low/mid/high semantic evidence. "
+            "The LLM receives only the classifier-based main category decision."
+        ),
+    )
     parser.add_argument("--reranker_path", default="", help="Optional Stage 5 reranker checkpoint directory or reranker.pt path.")
     parser.add_argument(
         "--anchor_mode",
@@ -70,8 +71,41 @@ def parse_args():
         default="top1_per_level",
         help="Control how many retrieved anchors are exposed to the LLM prompt.",
     )
+    parser.add_argument(
+        "--main_label_source",
+        choices=["evidence", "classifier"],
+        default="evidence",
+        help=(
+            "How to choose the object category used by the prompt. "
+            "'evidence' lets retrieval evidence vote for the main label; "
+            "'classifier' fixes the main label to the EEG classifier prediction and uses retrieval only for attributes/context."
+        ),
+    )
     parser.add_argument("--prompt_top_k", type=int, default=3, help="Used only by --anchor_mode global_topk.")
     parser.add_argument("--reliable_threshold", type=float, default=0.30)
+    parser.add_argument(
+        "--low_reliable_threshold",
+        type=float,
+        default=None,
+        help="Optional level-specific threshold for low semantic evidence. Falls back to --reliable_threshold.",
+    )
+    parser.add_argument(
+        "--mid_reliable_threshold",
+        type=float,
+        default=None,
+        help="Optional level-specific threshold for mid semantic evidence. Falls back to --reliable_threshold.",
+    )
+    parser.add_argument(
+        "--high_reliable_threshold",
+        type=float,
+        default=None,
+        help="Optional level-specific threshold for high semantic evidence. Falls back to --reliable_threshold.",
+    )
+    parser.add_argument(
+        "--drop_unreliable_low",
+        action="store_true",
+        help="For reliability-aware ablation: remove low-level cues below the low threshold instead of listing them as uncertain.",
+    )
     parser.add_argument(
         "--evidence_margin_threshold",
         type=float,
@@ -93,8 +127,6 @@ def parse_args():
 
 
 def token_f1(reference: str, generated: str) -> float:
-    """计算 reference caption 和 generated caption 之间的简单 bag-of-words token F1。"""
-
     ref_tokens = reference.lower().split()
     gen_tokens = generated.lower().split()
     if not ref_tokens or not gen_tokens:
@@ -116,8 +148,6 @@ def token_f1(reference: str, generated: str) -> float:
 
 
 def clean_generated_caption(text: str) -> str:
-    """去掉常见 LLM 输出噪声，只保留第一句。"""
-
     cleaned = text.strip()
     for marker in ["###", "Tags:", "Answer:", "Q:", "\n"]:
         if marker in cleaned:
@@ -129,8 +159,6 @@ def clean_generated_caption(text: str) -> str:
 
 
 def configure_paths(args):
-    """创建指向指定阶段二 checkpoint 的 PathConfig 配置对象。"""
-
     paths = PathConfig()
     paths.eeg_encoder_type = args.eeg_encoder_type
     paths.eeg_encoder_path = os.path.join(args.checkpoint_dir, "eeg_encoder")
@@ -140,12 +168,11 @@ def configure_paths(args):
     paths.eegpt_model_kwargs = args.eegpt_model_kwargs
     paths.eegpt_backbone_out_dim = args.eegpt_backbone_out_dim
     paths.eeg_feature_dim = args.eeg_feature_dim
+    paths.llm_path = args.llm_path
     return paths
 
 
 def load_retrieval_model(args, device):
-    """加载冻结 EEG encoder 和训练好的 MultiHead 语义头。"""
-
     paths = configure_paths(args)
     eeg_encoder = load_eeg_encoder(paths, device).eval()
     multi_head = MultiHead(args.eeg_feature_dim, 512).to(device).eval()
@@ -154,8 +181,6 @@ def load_retrieval_model(args, device):
 
 
 def load_reranker(path, device):
-    """加载可选的阶段五 reranker，用于 learned reranker 消融。"""
-
     if not path:
         return None
     checkpoint_path = path
@@ -172,8 +197,6 @@ def load_reranker(path, device):
 
 
 def load_semantic_db(path, device):
-    """加载结构化语义数据库，并构建类别到索引的辅助映射。"""
-
     db = torch.load(path, map_location="cpu")
     db["embeddings"] = {
         key: F.normalize(value.float(), dim=-1).to(device)
@@ -191,8 +214,6 @@ def load_semantic_db(path, device):
 
 
 def retrieve_one(query, db_embeds, top_k):
-    """根据余弦相似度从数据库中检索 top-k 条目。"""
-
     query = F.normalize(query.float(), dim=-1)
     scores = query @ db_embeds.t()
     values, indices = torch.topk(scores, k=min(top_k, db_embeds.size(0)), dim=-1)
@@ -200,8 +221,6 @@ def retrieve_one(query, db_embeds, top_k):
 
 
 def retrieve_one_filtered(query, db_embeds, candidate_mask, top_k):
-    """先用候选类别 mask 过滤数据库，再检索 top-k 条目。"""
-
     query = F.normalize(query.float(), dim=-1)
     scores = query @ db_embeds.t()
     scores = scores.masked_fill(~candidate_mask.unsqueeze(0), -1e9)
@@ -213,8 +232,6 @@ def retrieve_one_filtered(query, db_embeds, candidate_mask, top_k):
 
 
 def format_anchor(db, index, score, level):
-    """把检索到的数据库行转换成适合写入 prompt 的字典。"""
-
     label_name = db["label_names"][index]
     caption = db["captions"][index]
     semantic_text = caption
@@ -231,28 +248,22 @@ def format_anchor(db, index, score, level):
 
 
 def classifier_top_labels(cls_logits, id2label, top_k):
-    """返回分类器 top-k 预测类别集合。"""
-
     values, indices = torch.topk(cls_logits.float(), k=min(top_k, cls_logits.numel()), dim=-1)
     return {id2label[str(int(index.item()))] for index in indices}
 
 
 def classifier_top_label_scores(cls_logits, id2label, top_k):
-    """返回分类器 top-k 类别分数，并加入一个轻量 rank bonus。"""
-
     probs = F.softmax(cls_logits.float(), dim=-1)
     values, indices = torch.topk(probs, k=min(top_k, probs.numel()), dim=-1)
     scores = {}
     for rank, (value, index) in enumerate(zip(values, indices)):
         label = id2label[str(int(index.item()))]
-        # EEG 分类器的概率常常校准不好，所以保留一个按排名递减的小 bonus。
+        # Keep a rank bonus because EEG classifiers are often poorly calibrated.
         scores[label] = float(value.item()) + 0.20 / (rank + 1)
     return scores
 
 
 def top_retrieval_labels(predictions_by_level, db, top_k):
-    """收集三层语义 top-k 检索结果中出现过的类别。"""
-
     labels = set()
     for level, pred in predictions_by_level.items():
         scores, indices = retrieve_one(pred, db["embeddings"][level], top_k)
@@ -262,15 +273,11 @@ def top_retrieval_labels(predictions_by_level, db, top_k):
 
 
 def make_candidate_mask(db, candidate_labels, device):
-    """为“只在候选类别中检索”构建布尔 mask。"""
-
     mask = torch.tensor([label in candidate_labels for label in db["label_names"]], dtype=torch.bool, device=device)
     return mask
 
 
 def select_vote_anchors(anchors_by_level, prompt_top_k):
-    """用简单的跨层加权投票选择要放入 prompt 的语义锚点。"""
-
     level_weights = {"low": 0.7, "mid": 1.2, "high": 1.0}
     label_scores = {}
     label_best = {}
@@ -292,8 +299,8 @@ def select_vote_anchors(anchors_by_level, prompt_top_k):
         selected[level].append(anchor)
         used_images.add(anchor["image_name"])
 
-    # 如果 mid/high 的 top1 还没有被选入，就额外加入；它们通常携带 caption 最需要的
-    # 物体和场景线索。
+    # Add mid/high top1 when not already represented; they often carry the
+    # most useful object and scene cues for captioning.
     for level in ["mid", "high", "low"]:
         anchors = anchors_by_level.get(level, [])
         if anchors and anchors[0]["image_name"] not in used_images:
@@ -303,8 +310,6 @@ def select_vote_anchors(anchors_by_level, prompt_top_k):
 
 
 def decide_main_label(anchors_by_level, classifier_pred):
-    """旧版规则式主类别决策，用于对比和调试。"""
-
     top = {level: anchors[0] for level, anchors in anchors_by_level.items() if anchors}
     if not top:
         return classifier_pred, "fallback_classifier"
@@ -338,8 +343,6 @@ def decide_main_label(anchors_by_level, classifier_pred):
 
 
 def score_candidate_labels(predictions_by_level, db, candidate_labels, cls_logits, id2label, classifier_top_k):
-    """综合分类器和检索 evidence，为候选类别打分。"""
-
     labels = sorted(label for label in candidate_labels if label in db["label_indices"])
     if not labels:
         return {}
@@ -371,6 +374,17 @@ def score_candidate_labels(predictions_by_level, db, candidate_labels, cls_logit
     }
 
 
+def classifier_only_evidence(cls_logits, id2label, classifier_top_k):
+    cls_scores = classifier_top_label_scores(cls_logits, id2label, classifier_top_k)
+    return {
+        label: {
+            "score": score,
+            "parts": {"cls": score},
+        }
+        for label, score in cls_scores.items()
+    }
+
+
 def decide_main_label_evidence(
     predictions_by_level,
     anchors_by_level,
@@ -381,13 +395,6 @@ def decide_main_label_evidence(
     classifier_top_k,
     margin_threshold,
 ):
-    """最终主线使用的 evidence-based 主物体类别决策。
-
-    候选集合由“分类器 top-k 类别”和“low / mid / high 检索出的类别”取并集得到。
-    每个候选类别会综合语义相似度、语义层级权重和分类器置信度。如果前两个候选分数太接近，
-    就回退到旧版规则，避免被噪声检索结果误导。
-    """
-
     classifier_pred = id2label[str(int(cls_logits.argmax().item()))]
     old_label, old_reason = decide_main_label(anchors_by_level, classifier_pred)
     if not candidate_labels:
@@ -417,8 +424,6 @@ def decide_main_label_evidence(
 
 @torch.no_grad()
 def decide_main_label_reranker(reranker, predictions_by_level, db, candidate_labels, cls_logits, id2label, classifier_top_k):
-    """使用可选 learned reranker 选择主类别。"""
-
     if reranker is None:
         return None, "", {}
     candidate_names, features = candidate_feature_tensor(
@@ -445,8 +450,6 @@ def decide_main_label_reranker(reranker, predictions_by_level, db, candidate_lab
 
 
 def select_label_anchors(anchors_by_level, main_label, prompt_top_k):
-    """保留类别与最终主类别一致的检索锚点。"""
-
     selected = {"low": [], "mid": [], "high": []}
     for level, anchors in anchors_by_level.items():
         matched = [anchor for anchor in anchors if anchor["label"] == main_label]
@@ -460,8 +463,6 @@ def select_label_anchors(anchors_by_level, main_label, prompt_top_k):
 
 
 def retrieve_label_anchors(predictions_by_level, db, main_label, prompt_top_k):
-    """在最终主类别内部重新检索语义锚点。"""
-
     if main_label not in db["label_indices"]:
         return None
     selected = {"low": [], "mid": [], "high": []}
@@ -482,15 +483,11 @@ def retrieve_label_anchors(predictions_by_level, db, main_label, prompt_top_k):
 
 
 def select_decision_anchors(anchors_by_level, classifier_pred, prompt_top_k):
-    """为旧版 decision 模式选择 prompt 中使用的锚点。"""
-
     main_label, reason = decide_main_label(anchors_by_level, classifier_pred)
     return select_label_anchors(anchors_by_level, main_label, prompt_top_k), main_label, reason
 
 
 def select_prompt_anchors(anchors_by_level, anchor_mode, prompt_top_k):
-    """根据 anchor_mode 决定哪些锚点会被暴露给 LLM prompt。"""
-
     if anchor_mode == "top1_per_level":
         return {
             level: anchors[:1]
@@ -513,8 +510,6 @@ def select_prompt_anchors(anchors_by_level, anchor_mode, prompt_top_k):
 
 
 def format_evidence_scores(evidence, limit=5):
-    """把 evidence 分数序列化成紧凑的 CSV 单元格字符串。"""
-
     if not evidence:
         return ""
     ranked = sorted(evidence.items(), key=lambda item: item[1]["score"], reverse=True)[:limit]
@@ -531,14 +526,10 @@ def build_retrieval_prompt(
     decision_label="",
     decision_reason="",
     generation_prompt_style="conservative",
+    decoupled_semantics=False,
+    level_thresholds=None,
+    drop_unreliable_low=False,
 ):
-    """根据 reliable / uncertain 语义线索构造最终 LLM prompt。
-
-    prompt 会把高置信度检索锚点放入 reliable cues，把低置信度线索放入 uncertain cues。
-    ``structured`` prompt 风格会要求 LLM 模仿短图像 caption 的表达方式，有利于提升
-    F1、BLEU、ROUGE 等词面指标。
-    """
-
     if preselected_anchors is not None:
         prompt_anchors = preselected_anchors
     elif anchor_mode == "decision":
@@ -551,19 +542,34 @@ def build_retrieval_prompt(
         prompt_anchors = select_prompt_anchors(anchors_by_level, anchor_mode, prompt_top_k)
     reliable = []
     uncertain = []
+    level_thresholds = level_thresholds or {}
     for level, anchors in prompt_anchors.items():
         for anchor in anchors:
-            item = f"{level}: {anchor['label']} ({anchor['score']:.2f}) - {anchor['semantic_text']}"
-            if anchor["score"] >= threshold:
+            level_threshold = level_thresholds.get(level, threshold)
+            if drop_unreliable_low and level == "low" and anchor["score"] < level_threshold:
+                continue
+            if decoupled_semantics and level in {"low", "high"}:
+                item = f"{level} ({anchor['score']:.2f}) - {anchor['semantic_text']}"
+            else:
+                item = f"{level}: {anchor['label']} ({anchor['score']:.2f}) - {anchor['semantic_text']}"
+            if anchor["score"] >= level_threshold:
                 reliable.append(item)
             else:
                 uncertain.append(item)
     if not reliable:
-        best_level, best_anchor = max(
-            ((level, anchor) for level, anchors in prompt_anchors.items() for anchor in anchors),
-            key=lambda pair: pair[1]["score"],
-        )
-        reliable.append(f"{best_level}: {best_anchor['label']} ({best_anchor['score']:.2f}) - {best_anchor['caption']}")
+        flattened = [(level, anchor) for level, anchors in prompt_anchors.items() for anchor in anchors]
+        if flattened:
+            best_level, best_anchor = max(flattened, key=lambda pair: pair[1]["score"])
+            if decoupled_semantics and best_level in {"low", "high"}:
+                fallback_item = f"{best_level} ({best_anchor['score']:.2f}) - {best_anchor['semantic_text']}"
+            else:
+                fallback_item = (
+                    f"{best_level}: {best_anchor['label']} ({best_anchor['score']:.2f}) - {best_anchor['semantic_text']}"
+                )
+            reliable.append(fallback_item)
+            uncertain = [item for item in uncertain if item != fallback_item]
+        else:
+            reliable.append("none")
 
     reliable_text = "\n".join(f"- {item}" for item in reliable[:6])
     uncertain_text = "\n".join(f"- {item}" for item in uncertain[:6]) if uncertain else "- none"
@@ -576,15 +582,18 @@ def build_retrieval_prompt(
             "Instruction:\n"
             "Generate exactly one English sentence in this exact format:\n"
             f"The category is {label_hint}; it shows <a concise visual description>.\n"
-            "Use the decided category exactly as written before the semicolon. "
+            "Use the decided category as the main object and do not replace it with another object. "
             "After 'it shows', describe the main object, action or pose, visual attributes, "
-            "and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues."
+            "and scene/context using only reliable cues. Do not mention scores, uncertainty, or retrieved cues. "
+            "For low/high cues, use only their described attributes or scenes, not their source labels."
         )
     else:
+        label_hint = decision_label or classifier_pred or "the main object"
         instruction = (
             "Instruction:\n"
-            "Generate one conservative English image caption using only reliable cues. "
-            "Do not add details that are not supported. Output exactly one short sentence."
+            f"Generate one conservative English image caption about the main object category '{label_hint}'. "
+            "Do not add details that are not supported. Output exactly one short sentence. "
+            "For low/high cues, use only their described attributes or scenes, not their source labels."
         )
     return (
         decision_text
@@ -598,8 +607,6 @@ def build_retrieval_prompt(
 
 @torch.no_grad()
 def generate_from_prompt(tokenizer, llm, prompt, device, max_new_tokens):
-    """运行冻结 LLM，并清理得到第一句生成结果。"""
-
     if hasattr(tokenizer, "apply_chat_template") and tokenizer.chat_template:
         messages = [
             {"role": "system", "content": "You write concise and conservative image captions."},
@@ -620,8 +627,6 @@ def generate_from_prompt(tokenizer, llm, prompt, device, max_new_tokens):
 
 
 def make_loader(paths, data_cfg, tokenizer, args):
-    """构建推理/评估使用的测试集 caption loader。"""
-
     dataset = EEGCaptionDataset(
         eeg_dataset=paths.eeg_dataset,
         splits_path=paths.splits_path,
@@ -651,18 +656,19 @@ def main():
     ensure_source_on_path(paths.source_root)
     from constants import id2label
 
-    # tokenizer 和 LLM 分开加载：skip_llm 模式仍需要 tokenizer 构造数据集，
-    # 但可以避免加载大型语言模型。
     device = get_device(args.device)
-    tokenizer = AutoTokenizer.from_pretrained(paths.llm_path, local_files_only=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        paths.llm_path,
+        local_files_only=True,
+        trust_remote_code=args.llm_trust_remote_code,
+    )
     tokenizer.pad_token_id = tokenizer.eos_token_id
     test_loader = make_loader(paths, data_cfg, tokenizer, args)
 
-    # 语义数据库既是检索索引，也是 prompt 中可读 low / mid / high evidence 文本的来源。
     db = load_semantic_db(args.semantic_db_path, device)
     eeg_encoder, multi_head = load_retrieval_model(args, device)
     reranker = load_reranker(args.reranker_path, device)
-    llm = None if args.skip_llm else load_llm_model(paths.llm_path, device)
+    llm = None if args.skip_llm else load_llm_model(paths.llm_path, device, args.llm_trust_remote_code)
 
     rows = []
     seen = 0
@@ -681,7 +687,8 @@ def main():
                 "mid": pred_mid[i:i + 1],
                 "high": pred_high[i:i + 1],
             }
-            # 消融开关：这里去掉某个语义层级，就表示它不参与检索、evidence 决策和 LLM prompt。
+            if args.classifier_only:
+                predictions_by_level = {}
             predictions_by_level = {
                 level: pred
                 for level, pred in predictions_by_level.items()
@@ -690,16 +697,22 @@ def main():
             candidate_labels = set()
             candidate_mask = None
             if args.label_filter == "candidate":
-                # 可选的速度/降噪过滤：只在分类器或语义检索已经认为可能的类别里继续检索。
                 candidate_labels.update(classifier_top_labels(cls_logits[i], id2label, args.classifier_top_k))
-                candidate_labels.update(top_retrieval_labels(predictions_by_level, db, args.top_k))
+                if args.decoupled_semantics:
+                    label_predictions = {
+                        level: pred
+                        for level, pred in predictions_by_level.items()
+                        if level == "mid"
+                    }
+                    candidate_labels.update(top_retrieval_labels(label_predictions, db, args.top_k))
+                else:
+                    candidate_labels.update(top_retrieval_labels(predictions_by_level, db, args.top_k))
                 candidate_mask = make_candidate_mask(db, candidate_labels, device)
 
             anchors_by_level = {}
             top_labels = {"low": "", "mid": "", "high": ""}
             top_scores = {"low": "", "mid": "", "high": ""}
             for level, pred in predictions_by_level.items():
-                # 每个语义层级独立检索 top-k 语义锚点。
                 if candidate_mask is not None:
                     scores, indices = retrieve_one_filtered(pred, db["embeddings"][level], candidate_mask, args.top_k)
                 else:
@@ -714,9 +727,35 @@ def main():
             decision_reason = ""
             decision_evidence = {}
             preselected_anchors = None
-            if args.anchor_mode == "evidence" and reranker is not None:
-                # 学习式 reranker 消融路径。它是可选项；当规则式 evidence decision 更好时，
-                # 论文主结果不使用它。
+            if args.main_label_source == "classifier":
+                main_label = predicted_label
+                decision_reason = "classifier_main_label"
+                decision_evidence = classifier_only_evidence(cls_logits[i], id2label, args.classifier_top_k)
+                if args.classifier_only:
+                    preselected_anchors = {}
+                else:
+                    preselected_anchors = retrieve_label_anchors(
+                        predictions_by_level,
+                        db,
+                        main_label,
+                        args.prompt_top_k,
+                    )
+                    if preselected_anchors is None:
+                        preselected_anchors = select_prompt_anchors(
+                            anchors_by_level,
+                            "topk_per_level",
+                            args.prompt_top_k,
+                        )
+            elif args.anchor_mode == "evidence" and args.decoupled_semantics:
+                main_label = predicted_label
+                decision_reason = "classifier_only" if args.classifier_only else "decoupled_classifier"
+                decision_evidence = classifier_only_evidence(cls_logits[i], id2label, args.classifier_top_k)
+                preselected_anchors = {} if args.classifier_only else select_prompt_anchors(
+                    anchors_by_level,
+                    "topk_per_level",
+                    args.prompt_top_k,
+                )
+            elif args.anchor_mode == "evidence" and reranker is not None:
                 rerank_label, rerank_reason, decision_evidence = decide_main_label_reranker(
                     reranker,
                     predictions_by_level,
@@ -736,7 +775,6 @@ def main():
                         args.prompt_top_k,
                     )
             elif args.anchor_mode == "evidence":
-                # 最终主线：聚合分类器和检索 evidence 决定主类别，然后围绕该类别重新取锚点。
                 main_label, decision_reason, decision_evidence = decide_main_label_evidence(
                     predictions_by_level,
                     anchors_by_level,
@@ -763,6 +801,13 @@ def main():
                 decision_label=main_label,
                 decision_reason=decision_reason,
                 generation_prompt_style=args.generation_prompt_style,
+                decoupled_semantics=args.decoupled_semantics,
+                level_thresholds={
+                    "low": args.low_reliable_threshold if args.low_reliable_threshold is not None else args.reliable_threshold,
+                    "mid": args.mid_reliable_threshold if args.mid_reliable_threshold is not None else args.reliable_threshold,
+                    "high": args.high_reliable_threshold if args.high_reliable_threshold is not None else args.reliable_threshold,
+                },
+                drop_unreliable_low=args.drop_unreliable_low,
             )
             generated = "" if args.skip_llm else generate_from_prompt(tokenizer, llm, prompt, device, args.max_new_tokens)
             true_label = id2label[str(batch["labels"][i].item())]
@@ -770,7 +815,6 @@ def main():
                 main_label, decision_reason = decide_main_label(anchors_by_level, predicted_label)
             elif args.anchor_mode != "evidence":
                 main_label, decision_reason = "", ""
-            # CSV 同时保存生成 caption 和完整 evidence 轨迹，方便逐样本检查错误来源。
             rows.append({
                 "image_name": batch["image_names"][i],
                 "reference_caption": batch["captions"][i],
@@ -784,6 +828,7 @@ def main():
                 "top_mid_score": top_scores["mid"],
                 "top_high_score": top_scores["high"],
                 "semantic_levels": "|".join(args.semantic_levels),
+                "decoupled_semantics": args.decoupled_semantics,
                 "retrieval_label_hit_any": true_label in [label for label in top_labels.values() if label],
                 "candidate_labels": "|".join(sorted(candidate_labels)) if candidate_labels else "",
                 "candidate_label_hit": true_label in candidate_labels if candidate_labels else "",

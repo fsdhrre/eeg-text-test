@@ -1,0 +1,8 @@
+{
+  "split": "test",
+  "samples": 1987,
+  "checkpoint_dir": "outputs/stage2_eegpt_structured/best",
+  "accuracy": 0.4730749874182184,
+  "perplexity": 35.0,
+  "random_state": 42
+}

@@ -40,6 +40,9 @@ docs/
 
 examples/metrics_summary/
   Small JSON summaries from existing runs.
+
+paper_results/
+  Paper-facing figures, metric tables, semantic examples, and output examples.
 ```
 
 Large EEG data, images, LLM weights, EEGPT checkpoints, and generated CSV files are intentionally excluded.
@@ -88,3 +91,24 @@ examples/metrics_summary/stage4_structured_retrieval_full_evidence_structured_pr
 See [docs/RUN_COMMANDS.md](docs/RUN_COMMANDS.md).
 
 Before running, update local paths in `eeg_text_codex/config.py`, especially EEG data, image data, CLIP, Qwen-VL/LLM, and EEGPT checkpoint paths.
+
+## Paper Results
+
+The current paper figures and result descriptions are in:
+
+```text
+paper_results/
+```
+
+Important files:
+
+```text
+paper_results/figures/01_method_pipeline.png
+paper_results/figures/main_metrics_grouped_bar.png
+paper_results/figures/tsne_test_by_true_label.png
+paper_results/figures/07_per_class_classification_accuracy.png
+paper_results/examples/stage4_classifier_main_label_low_high_llm_50.csv
+paper_results/docs/SEMANTIC_AND_OUTPUT_DESCRIPTION.md
+paper_results/docs/METRIC_DESCRIPTIONS.md
+paper_results/docs/FIGURE_DESCRIPTIONS.md
+```

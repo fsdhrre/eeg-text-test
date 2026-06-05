@@ -1,0 +1,22 @@
+{
+  "input_csv": "outputs/stage4_classifier_main_label_low_high_llm_50.csv",
+  "rows": 50,
+  "strip_template_prefix": false,
+  "image_clip_available": true,
+  "metrics": {
+    "object_accuracy": 0.48,
+    "image_text_clipscore": 0.2204180358350277,
+    "clip_text_similarity": 0.6586316627264023,
+    "token_f1": 0.47946227598175584,
+    "bleu1_sentence_avg": 0.4411828645013653,
+    "bleu2_sentence_avg": 0.36416259491424263,
+    "bleu3_sentence_avg": 0.3073069826706529,
+    "bleu4_sentence_avg": 0.25687461210764506,
+    "bleu4_corpus": 0.24856489234576792,
+    "rouge_l": 0.4575466793381628,
+    "meteor": 0.4502017594719117,
+    "cider": 1.139646300346761,
+    "cue_coverage": 0.34791411636005115,
+    "evidence_faithfulness": 0.705400899753841
+  }
+}

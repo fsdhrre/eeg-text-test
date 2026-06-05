@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "split_names": [
+      "train",
+      "val",
+      "test"
+    ],
+    "caption_map_path": "/home/dell/桌面/coding/2025/hl/eeg-text-codex/outputs/qwen_structured_captions_v3.json",
+    "clip_path": "/home/dell/桌面/coding/2025/hl/LLM_text/llm/clip",
+    "semantic_type": "structured_text"
+  },
+  "num_images": 1996,
+  "first_rows": [
+    {
+      "image_name": "n02951358_31190",
+      "label": "canoe or boat",
+      "low": "Visual attributes of the canoe or boat: pink.",
+      "mid": "Main object and action: canoe or boat; navigates.",
+      "high": "Scene and context for the canoe or boat: background, river.",
+      "caption": "The category is canoe or boat; it shows a woman in a pink kayak navigates a river with rocks in the background."
+    },
+    {
+      "image_name": "n02951358_34807",
+      "label": "canoe or boat",
+      "low": "Visual attributes of the canoe or boat: blue, white.",
+      "mid": "Main object and action: canoe or boat; wearing.",
+      "high": "Scene and context for the canoe or boat: the kayaker is wearing a blue life jacket and a white helmet.",
+      "caption": "The category is canoe or boat; it shows the kayaker is wearing a blue life jacket and a white helmet."
+    },
+    {
+      "image_name": "n03452741_5499",
+      "label": "piano",
+      "low": "Visual attributes of the piano: red.",
+      "mid": "Main object and action: piano; sits.",
+      "high": "Scene and context for the piano: a man in a red shirt sits at a piano in front of a Christmas tree.",
+      "caption": "The category is piano; it shows a man in a red shirt sits at a piano in front of a Christmas tree."
+    },
+    {
+      "image_name": "n03376595_247",
+      "label": "chair",
+      "low": "Visual attributes of the chair: the chairs are arranged in rows and come in a variety of colors and styles.",
+      "mid": "Main object and action: chair; the chairs are arranged in rows and come in a variety of colors and styles.",
+      "high": "Scene and context for the chair: the chairs are arranged in rows and come in a variety of colors and styles.",
+      "caption": "The category is chair; it shows the chairs are arranged in rows and come in a variety of colors and styles."
+    },
+    {
+      "image_name": "n02906734_14010",
+      "label": "brush",
+      "low": "Visual attributes of the brush: a man in a hat is skating on the ice with a broom.",
+      "mid": "Main object and action: brush; skating.",
+      "high": "Scene and context for the brush: a man in a hat is skating on the ice with a broom.",
+      "caption": "The category is brush; it shows a man in a hat is skating on the ice with a broom."
+    },
+    {
+      "image_name": "n02607072_5873",
+      "label": "clownfish or fish",
+      "low": "Visual attributes of the clownfish or fish: orange, pink, white.",
+      "mid": "Main object and action: clownfish or fish; hiding.",
+      "high": "Scene and context for the clownfish or fish: an orange fish with a white stripe is hiding in a pink sea anemone.",
+      "caption": "The category is clownfish or fish; it shows an orange fish with a white stripe is hiding in a pink sea anemone."
+    },
+    {
+      "image_name": "n02510455_96034",
+      "label": "panda or pandas",
+      "low": "Visual attributes of the panda or pandas: two pandas are playing in the grass.",
+      "mid": "Main object and action: panda or pandas; playing.",
+      "high": "Scene and context for the panda or pandas: grass.",
+      "caption": "The category is panda or pandas; it shows two pandas are playing in the grass."
+    },
+    {
+      "image_name": "n02281787_4182",
+      "label": "butterfly",
+      "low": "Visual attributes of the butterfly: spotted, yellow.",
+      "mid": "Main object and action: butterfly; sits.",
+      "high": "Scene and context for the butterfly: a spotted butterfly sits on a yellow flower.",
+      "caption": "The category is butterfly; it shows a spotted butterfly sits on a yellow flower."
+    },
+    {
+      "image_name": "n02906734_508",
+      "label": "brush",
+      "low": "Visual attributes of the brush: green, white.",
+      "mid": "Main object and action: brush; a green and white broom brush against a white background.",
+      "high": "Scene and context for the brush: background.",
+      "caption": "The category is brush; it shows a green and white broom brush against a white background."
+    },
+    {
+      "image_name": "n03272010_4472",
+      "label": "guitar",
+      "low": "Visual attributes of the guitar: black, white.",
+      "mid": "Main object and action: guitar; sits.",
+      "high": "Scene and context for the guitar: wall.",
+      "caption": "The category is guitar; it shows a black electric guitar sits against a white wall."
+    }
+  ]
+}
