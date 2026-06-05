@@ -16,6 +16,9 @@ examples/
 
 docs/
   Human-readable descriptions of figures, metrics, semantic levels, and output columns.
+
+qualitative_images/
+  Eight image files used by the qualitative case table, with a CSV/README mapping image IDs to captions and scores.
 ```
 
 ## Current Main Experimental Setting

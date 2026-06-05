@@ -1,0 +1,9 @@
+no,file,image_id,true_predicted,reference_caption,generated_caption,score
+1,01_n11939491_51732_flower.JPEG,n11939491_51732,flower / flower,"A field of white daisies with yellow centers, surrounded by a dark background.","A group of four white flowers with yellow centers, surrounded by green leaves.",0.737
+2,02_n07873807_8875_pizza.JPEG,n07873807_8875,pizza / pizza,"A slice of pizza with mushrooms, spinach, and red sauce sits on a white plate.","A close-up of a slice with cheese, peppers, and onions on a white plate.",0.732
+3,03_n03792972_1036_camping.JPEG,n03792972_1036,camp or camping / camp or camping,"A man sits in an orange tent on a rocky mountain plain.","A green tent pitched on a rocky hillside.",0.722
+4,04_n03063599_1096_coffee_mug.JPEG,n03063599_1096,coffee mug / coffee mug,"A white ceramic coffee mug with a Starbucks logo sits on a black table.","A white Starbucks mug sitting on a counter.",0.722
+5,05_n02951358_30776_canoe_failure.JPEG,n02951358_30776,canoe or boat / cell phone,"Three people in life jackets paddle their kayaks through the ocean.","A silver device with a blue outline, sitting on a white surface next to a cup of coffee.",0.227
+6,06_n02690373_398_airplane_failure.JPEG,n02690373_398,airplane / elephant,"An American Airlines plane flies through the sky, with a red, blue, and white striped tail.","A large elephant standing in front of trees.",0.233
+7,07_n02992529_42996_cell_phone_failure.JPEG,n02992529_42996,cell phone / canoe or boat,"A shirtless man smoking a cigarette checks his phone in a crowded street.","Two canoes on the grass by the lake with two people pushing one into the water.",0.238
+8,08_n04069434_9030_camera.JPEG,n04069434_9030,camera / camera,Camera qualitative example.,Camera qualitative example.,
